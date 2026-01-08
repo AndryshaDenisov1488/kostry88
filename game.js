@@ -15,6 +15,9 @@ class Game {
         ];
         this.currentTrackIndex = 0;
         
+        // Флаг для предотвращения множественных обновлений карты
+        this.isUpdatingMap = false;
+        
         this.init();
     }
     
@@ -47,6 +50,12 @@ class Game {
             resizeTimeout = setTimeout(() => {
                 // Пересчитываем карту только если она активна
                 if (this.mapScreen && this.mapScreen.classList.contains('active')) {
+                    // Сбрасываем трансформацию камеры перед обновлением
+                    const mapContainer = document.querySelector('.map-container');
+                    if (mapContainer) {
+                        mapContainer.style.transform = 'translate(0, 0)';
+                        mapContainer.style.webkitTransform = 'translate(0, 0)';
+                    }
                     this.updateMap();
                 }
             }, 300);
@@ -65,6 +74,7 @@ class Game {
         this.startBtn = document.getElementById('startBtn');
         this.musicToggleBtn = document.getElementById('musicToggleBtn');
         this.musicToggleBtnMap = document.getElementById('musicToggleBtnMap');
+        this.startBallBtn = document.getElementById('startBallBtn');
         this.continueBtn = document.getElementById('continueBtn');
         this.restoreYesBtn = document.getElementById('restoreYesBtn');
         this.restoreNoBtn = document.getElementById('restoreNoBtn');
@@ -95,6 +105,9 @@ class Game {
         this.finalContent = document.getElementById('finalContent');
         this.confettiContainer = document.getElementById('confettiContainer');
         
+        // Подсказка при старте
+        this.startHint = document.getElementById('startHint');
+        
         // Аудио
         this.backgroundMusic = document.getElementById('backgroundMusic');
         this.goalSound = document.getElementById('goalSound');
@@ -114,6 +127,17 @@ class Game {
         }
         if (this.musicToggleBtnMap) {
             this.musicToggleBtnMap.addEventListener('click', () => this.toggleMusic());
+        }
+        if (this.startBallBtn) {
+            this.startBallBtn.addEventListener('click', () => this.startBallAnimation());
+        }
+        if (this.startHint) {
+            // Закрываем подсказку по клику
+            this.startHint.addEventListener('click', () => {
+                if (this.startHint) {
+                    this.startHint.style.display = 'none';
+                }
+            });
         }
         if (this.continueBtn) {
             this.continueBtn.addEventListener('click', () => this.showContentModal());
@@ -239,23 +263,96 @@ class Game {
         // Обновляем карту и ждём, пока она полностью загрузится
         this.updateMap();
         
-        // Увеличенная задержка для гарантии, что карта отрисовалась и камера центрирована
+        // Показываем подсказку и кнопку "разыграть мяч" после загрузки карты
         setTimeout(() => {
-            // Дополнительная проверка и центрирование камеры
-            const points = this.calculateMapPoints();
-            if (points && points.length > 0) {
-                const firstPoint = points[0];
-                if (firstPoint) {
-                    this.moveCamera(firstPoint, true);
-                }
+            // Показываем подсказку
+            if (this.startHint) {
+                this.startHint.style.display = 'block';
+                // Скрываем подсказку через 5 секунд или при клике
+                setTimeout(() => {
+                    if (this.startHint) {
+                        this.startHint.style.display = 'none';
+                    }
+                }, 5000);
             }
             
-            // После отрисовки карты показываем задание
+            // Показываем кнопку "разыграть мяч"
+            if (this.startBallBtn) {
+                this.startBallBtn.style.display = 'block';
+            }
+            
+            // Центрируем камеру на центре поля (не на первой точке, чтобы видеть всю карту)
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const centerPoint = {
+                x: viewportWidth / 2,
+                y: viewportHeight / 2,
+                z: 0,
+                index: 0
+            };
+            this.moveCamera(centerPoint, true);
+        }, 1000);
+    }
+    
+    // Анимация подбрасывания мяча на первый квест
+    startBallAnimation() {
+        if (!this.startBallBtn) return;
+        
+        // Скрываем кнопку и подсказку
+        this.startBallBtn.style.display = 'none';
+        if (this.startHint) {
+            this.startHint.style.display = 'none';
+        }
+        
+        const ball = this.map ? this.map.querySelector('.football-ball') : null;
+        if (!ball) return;
+        
+        const points = this.calculateMapPoints();
+        if (!points || points.length === 0) return;
+        
+        // Используем центральную точку сетки 5x5 как первый квест (индекс 12: row=2, col=2)
+        const firstQuestPoint = points[12] || points[Math.floor(points.length / 2)] || points[0];
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        
+        // Начальная позиция мяча (в центре поля, внизу)
+        const startX = viewportWidth / 2;
+        const startY = viewportHeight * 0.8;
+        
+        // Конечная позиция (центральная точка - первый квест)
+        const endX = firstQuestPoint.x;
+        const endY = firstQuestPoint.y;
+        
+        // Центрируем камеру на центральной точке перед анимацией
+        this.moveCamera(firstQuestPoint, true);
+        
+        // Устанавливаем начальную позицию мяча
+        ball.style.left = (startX - 17.5) + 'px';
+        ball.style.top = (startY - 17.5) + 'px';
+        ball.style.transition = 'none';
+        ball.classList.add('moving');
+        
+        // Анимация подбрасывания вверх
+        setTimeout(() => {
+            const midY = viewportHeight * 0.2; // Высшая точка подбрасывания
+            ball.style.transition = 'left 1.5s cubic-bezier(0.4, 0, 0.2, 1), top 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+            ball.style.left = (endX - 17.5) + 'px';
+            ball.style.top = (midY - 17.5) + 'px';
+            
+            // Падение на первую точку
             setTimeout(() => {
-                this.showScreen('taskScreen');
-                this.startStage();
-            }, 300);
-        }, 800);
+                ball.style.transition = 'left 0.7s cubic-bezier(0.4, 0, 0.2, 1), top 0.7s cubic-bezier(0.4, 0, 0.2, 1)';
+                ball.style.left = (endX - 17.5) + 'px';
+                ball.style.top = (endY - 17.5) + 'px';
+                
+                // После падения показываем задание
+                setTimeout(() => {
+                    ball.classList.remove('moving');
+                    this.showScreen('taskScreen');
+                    this.startStage();
+                }, 700);
+            }, 800);
+        }, 50);
     }
     
     restoreGame() {
@@ -307,6 +404,12 @@ class Game {
             return;
         }
         
+        // Предотвращаем множественные одновременные обновления
+        if (this.isUpdatingMap) {
+            return;
+        }
+        this.isUpdatingMap = true;
+        
         // Задержка для того, чтобы карта успела получить размеры
         // Используем больше времени для гарантии правильной отрисовки
         setTimeout(() => {
@@ -326,20 +429,14 @@ class Game {
                 return;
             }
             
-            // Нарисовать путь
-            this.drawPath(points);
+            // Создать игроков на поле (12 штук - по 6 с каждой стороны)
+            this.createFieldPlayers();
             
-            // Добавляем бетонные плиты в начале дорожки (первый этап)
-            if (this.currentStage === 0 || this.currentStage === 1) {
-                this.createStartingPlates(points[0]);
-            }
+            // Создать мяч
+            this.createFootballBall();
             
-            // Добавляем правые ворота (если их еще нет)
-            if (!this.map.querySelector('.goal-right')) {
-                const goalRight = document.createElement('div');
-                goalRight.className = 'goal-right';
-                this.map.appendChild(goalRight);
-            }
+            // Нарисовать путь (если нужен)
+            // this.drawPath(points);
             
             // Нарисовать точки
             points.forEach((point, index) => {
@@ -357,74 +454,30 @@ class Game {
                 this.character.style.transition = 'none';
                 this.positionCharacter(targetPoint);
                 
-                // Немедленно центрируем камеру на текущей точке БЕЗ анимации
-                // Используем несколько вызовов для гарантии правильной отрисовки
-                const centerCamera = () => {
-                    this.moveCamera(targetPoint, true); // instant = true
-                    
-                    // Проверяем, что камера действительно центрирована
-                    setTimeout(() => {
-                        const mapContainer = document.querySelector('.map-container');
-                        if (mapContainer) {
-                            const computedStyle = window.getComputedStyle(mapContainer);
-                            const transform = computedStyle.transform;
-                            // Если transform не применился, пробуем ещё раз
-                            if (!transform || transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)') {
-                                this.moveCamera(targetPoint, true);
-                            }
-                        }
-                        
-                        // Восстанавливаем transition
-                        if (this.character) {
-                            this.character.style.transition = oldTransition || '';
-                        }
-                    }, 200);
-                };
-                
-                // Двойной requestAnimationFrame для гарантии отрисовки
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        centerCamera();
-                    });
-                });
-            } else if (points[0] && this.character) {
-                // Если текущая точка не найдена, используем первую
-                const oldTransition = this.character.style.transition;
-                this.character.style.transition = 'none';
-                this.positionCharacter(points[0]);
-                
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        this.moveCamera(points[0], true);
-                        
-                        setTimeout(() => {
-                            if (this.character) {
-                                this.character.style.transition = oldTransition || '';
-                            }
-                        }, 200);
-                    });
-                });
+                // Восстанавливаем transition
+                setTimeout(() => {
+                    if (this.character) {
+                        this.character.style.transition = oldTransition || '';
+                    }
+                }, 100);
             }
+            
+            // Обновить позицию мяча
+            this.updateBallPosition();
             
             // Обновить прогресс
             this.updateProgress();
             
-            // Дополнительная проверка и центрирование через небольшую задержку
-            setTimeout(() => {
-                const currentPoint = points[this.currentStage] || points[0];
-                if (currentPoint) {
-                    // Проверяем, что камера действительно центрирована
-                    const mapContainer = document.querySelector('.map-container');
-                    if (mapContainer) {
-                        const style = window.getComputedStyle(mapContainer);
-                        const transform = style.transform;
-                        // Если камера не смещена, центрируем её
-                        if (!transform || transform === 'none' || transform.includes('0, 0, 0')) {
-                            this.moveCamera(currentPoint, true);
-                        }
-                    }
-                }
-            }, 100);
+            // Центрируем камеру только если это не начальный экран (где currentStage = 0)
+            // На начальном экране камера центрируется в startGame
+            if (targetPoint && this.currentStage > 0) {
+                requestAnimationFrame(() => {
+                    this.moveCamera(targetPoint, true);
+                });
+            }
+            
+            // Снимаем флаг после завершения обновления
+            this.isUpdatingMap = false;
         }, 200); // Увеличиваем задержку для гарантии отрисовки
     }
     
@@ -456,66 +509,130 @@ class Game {
     }
     
     // Вынесенный метод для расчета точек с конкретными размерами
+    // Расстановка по футбольной схеме: вратарь, защитники, полузащитники, нападающие
     calculatePointsWithSize(mapWidth, mapHeight) {
         const points = [];
         
-        // Адаптивный padding в зависимости от размера экрана (минимальный для полного экрана)
+        const centerX = mapWidth / 2;
+        const centerY = mapHeight / 2;
         const isMobile = mapWidth <= 768;
-        const paddingX = isMobile ? 30 : 50;
-        const paddingY = isMobile ? 40 : 60;
         
-        // Доступная область для размещения точек (в пределах экрана, используем весь доступный размер)
-        const availableWidth = Math.max(200, mapWidth - paddingX * 2);
-        const availableHeight = Math.max(200, mapHeight - paddingY * 2);
+        // Левая сторона (12 игроков: 1-12)
+        // Вратарь (1) - в воротах слева
+        points.push({ 
+            x: mapWidth * 0.08, 
+            y: centerY, 
+            z: 0, 
+            index: 0,
+            side: 'left',
+            position: 'goalkeeper'
+        });
         
-        // Создаём путь в виде зигзага/серпантина
-        // На мобильных делаем более компактный путь (3 колонки), на десктопах - 5
-        const columns = isMobile ? 3 : 5;
-        const rows = Math.ceil(this.totalStages / columns);
-        const segmentWidth = columns > 1 ? availableWidth / (columns - 1) : availableWidth;
-        const segmentHeight = rows > 1 ? availableHeight / (rows - 1) : availableHeight;
-        
-        // Начинаем с центра доступной области для видимости при старте
-        const startX = paddingX + availableWidth / 2;
-        const startY = paddingY + availableHeight / 2;
-        let x = startX;
-        let y = startY;
-        let currentColumn = 0;
-        
-        // Первая точка в центре для лучшей видимости
-        if (this.totalStages > 0) {
-            const z = Math.sin(0 * 0.3) * 30;
-            points.push({ x, y, z, index: 0 });
+        // Защитники (2-4) - перед воротами, в линию
+        const defendersY = [centerY - mapHeight * 0.15, centerY, centerY + mapHeight * 0.15];
+        for (let i = 0; i < 3; i++) {
+            points.push({ 
+                x: mapWidth * 0.15, 
+                y: defendersY[i], 
+                z: 5, 
+                index: i + 1,
+                side: 'left',
+                position: 'defender'
+            });
         }
         
-        // Распределяем остальные точки по маршруту от центра
-        // Используем зигзаг от центра в пределах доступной области
-        for (let i = 1; i < this.totalStages; i++) {
-            const z = Math.sin(i * 0.3) * 30;
-            
-            currentColumn++;
-            
-            // Если достигли конца строки, переходим на следующую
-            if (currentColumn >= columns) {
-                currentColumn = 0;
-                y = paddingY + ((Math.floor(i / columns) + 1) * segmentHeight);
-                // Новая строка начинается от центра
-                x = startX;
-            } else {
-                // Двигаемся в текущей строке от центра
-                // Вычисляем смещение от центра (может быть отрицательным)
-                const columnOffset = currentColumn - Math.floor(columns / 2);
-                const offsetFromCenter = columnOffset * segmentWidth;
-                x = startX + offsetFromCenter;
-            }
-            
-            // Ограничиваем точки в пределах экрана (с запасом для элементов)
-            const margin = 30;
-            x = Math.max(paddingX + margin, Math.min(mapWidth - paddingX - margin, x));
-            y = Math.max(paddingY + margin, Math.min(mapHeight - paddingY - margin, y));
-            
-            points.push({ x, y, z, index: i });
+        // Полузащитники (5-8) - в центре левой половины
+        const midfieldersY = [
+            centerY - mapHeight * 0.2,
+            centerY - mapHeight * 0.07,
+            centerY + mapHeight * 0.07,
+            centerY + mapHeight * 0.2
+        ];
+        for (let i = 0; i < 4; i++) {
+            points.push({ 
+                x: mapWidth * 0.25, 
+                y: midfieldersY[i], 
+                z: 10, 
+                index: i + 4,
+                side: 'left',
+                position: 'midfielder'
+            });
         }
+        
+        // Нападающие (9-12) - ближе к центру поля
+        const forwardsY = [
+            centerY - mapHeight * 0.18,
+            centerY - mapHeight * 0.06,
+            centerY + mapHeight * 0.06,
+            centerY + mapHeight * 0.18
+        ];
+        for (let i = 0; i < 4; i++) {
+            points.push({ 
+                x: mapWidth * 0.38, 
+                y: forwardsY[i], 
+                z: 15, 
+                index: i + 8,
+                side: 'left',
+                position: 'forward'
+            });
+        }
+        
+        // Правая сторона (12 игроков: 13-24)
+        // Вратарь (13) - в воротах справа
+        points.push({ 
+            x: mapWidth * 0.92, 
+            y: centerY, 
+            z: 0, 
+            index: 12,
+            side: 'right',
+            position: 'goalkeeper'
+        });
+        
+        // Защитники (14-16) - перед воротами, в линию
+        for (let i = 0; i < 3; i++) {
+            points.push({ 
+                x: mapWidth * 0.85, 
+                y: defendersY[i], 
+                z: 5, 
+                index: i + 13,
+                side: 'right',
+                position: 'defender'
+            });
+        }
+        
+        // Полузащитники (17-20) - в центре правой половины
+        for (let i = 0; i < 4; i++) {
+            points.push({ 
+                x: mapWidth * 0.75, 
+                y: midfieldersY[i], 
+                z: 10, 
+                index: i + 16,
+                side: 'right',
+                position: 'midfielder'
+            });
+        }
+        
+        // Нападающие (21-24) - ближе к центру поля
+        for (let i = 0; i < 4; i++) {
+            points.push({ 
+                x: mapWidth * 0.62, 
+                y: forwardsY[i], 
+                z: 15, 
+                index: i + 20,
+                side: 'right',
+                position: 'forward'
+            });
+        }
+        
+        // Центр поля (25) - финал
+        points.push({ 
+            x: centerX, 
+            y: centerY, 
+            z: 30, 
+            index: 24,
+            side: 'center',
+            position: 'final'
+        });
         
         return points;
     }
@@ -575,17 +692,151 @@ class Game {
         }
     }
     
+    // Создание 12 игроков на поле (по 6 с каждой стороны)
+    createFieldPlayers() {
+        if (!this.map) return;
+        
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Позиции игроков (6 слева, 6 справа)
+        // Левая сторона (красные)
+        const leftPositions = [
+            { x: viewportWidth * 0.15, y: viewportHeight * 0.15 }, // Верхний левый
+            { x: viewportWidth * 0.15, y: viewportHeight * 0.35 }, // Средний левый верх
+            { x: viewportWidth * 0.15, y: viewportHeight * 0.50 }, // Центр левый
+            { x: viewportWidth * 0.15, y: viewportHeight * 0.65 }, // Средний левый низ
+            { x: viewportWidth * 0.15, y: viewportHeight * 0.85 }, // Нижний левый
+            { x: viewportWidth * 0.08, y: viewportHeight * 0.50 }, // Крайний левый (вратарь)
+        ];
+        
+        // Правая сторона (синие)
+        const rightPositions = [
+            { x: viewportWidth * 0.85, y: viewportHeight * 0.15 }, // Верхний правый
+            { x: viewportWidth * 0.85, y: viewportHeight * 0.35 }, // Средний правый верх
+            { x: viewportWidth * 0.85, y: viewportHeight * 0.50 }, // Центр правый
+            { x: viewportWidth * 0.85, y: viewportHeight * 0.65 }, // Средний правый низ
+            { x: viewportWidth * 0.85, y: viewportHeight * 0.85 }, // Нижний правый
+            { x: viewportWidth * 0.92, y: viewportHeight * 0.50 }, // Крайний правый (вратарь)
+        ];
+        
+        // Создаём игроков левой стороны
+        leftPositions.forEach((pos, index) => {
+            const player = document.createElement('div');
+            player.className = 'field-player left-side';
+            player.textContent = index + 1;
+            player.style.left = (pos.x - 20) + 'px';
+            player.style.top = (pos.y - 20) + 'px';
+            this.map.appendChild(player);
+        });
+        
+        // Создаём игроков правой стороны
+        rightPositions.forEach((pos, index) => {
+            const player = document.createElement('div');
+            player.className = 'field-player right-side';
+            player.textContent = index + 1;
+            player.style.left = (pos.x - 20) + 'px';
+            player.style.top = (pos.y - 20) + 'px';
+            this.map.appendChild(player);
+        });
+    }
+    
+    // Создание мяча
+    createFootballBall() {
+        if (!this.map) return;
+        
+        // Удаляем старый мяч, если есть
+        const oldBall = this.map.querySelector('.football-ball');
+        if (oldBall) {
+            oldBall.remove();
+        }
+        
+        const ball = document.createElement('div');
+        ball.className = 'football-ball';
+        this.map.appendChild(ball);
+        
+        // Позиционируем мяч в зависимости от текущего этапа
+        this.updateBallPosition();
+    }
+    
+    // Обновление позиции мяча в зависимости от этапа
+    updateBallPosition() {
+        const ball = this.map ? this.map.querySelector('.football-ball') : null;
+        if (!ball) return;
+        
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Если это начало игры (currentStage = 0), мяч внизу в центре
+        if (this.currentStage === 0) {
+            const ballX = viewportWidth / 2;
+            const ballY = viewportHeight * 0.8;
+            ball.style.left = (ballX - 17.5) + 'px';
+            ball.style.top = (ballY - 17.5) + 'px';
+            return;
+        }
+        
+        // Определяем, на какой стороне должен быть мяч
+        // Нечётные этапы - слева, чётные - справа (или наоборот)
+        const isLeftSide = this.currentStage % 2 === 0;
+        
+        const ballX = isLeftSide ? viewportWidth * 0.25 : viewportWidth * 0.75;
+        const ballY = viewportHeight * 0.50;
+        
+        ball.style.left = (ballX - 17.5) + 'px';
+        ball.style.top = (ballY - 17.5) + 'px';
+    }
+    
+    // Анимация перекидывания мяча
+    animateBallPass(fromLeft) {
+        const ball = this.map ? this.map.querySelector('.football-ball') : null;
+        if (!ball) return;
+        
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        const startX = fromLeft ? viewportWidth * 0.25 : viewportWidth * 0.75;
+        const endX = fromLeft ? viewportWidth * 0.75 : viewportWidth * 0.25;
+        const centerY = viewportHeight * 0.50;
+        
+        // Добавляем класс для анимации подпрыгивания
+        ball.classList.add('moving');
+        
+        // Анимируем движение мяча
+        ball.style.left = (endX - 17.5) + 'px';
+        ball.style.top = (centerY - 17.5) + 'px';
+        
+        // Убираем класс анимации после завершения
+        setTimeout(() => {
+            ball.classList.remove('moving');
+        }, 1500);
+    }
+    
     createMapPoint(point, index) {
         const pointElement = document.createElement('div');
         pointElement.className = 'map-point';
         
-        // Адаптивный размер точки
+        // Адаптивный размер точки (игрока)
         const isMobile = window.innerWidth <= 768;
-        const pointSize = isMobile ? 12.5 : 15;
+        const pointWidth = isMobile ? 30 : 40;
+        const pointHeight = isMobile ? 37 : 50;
         
-        pointElement.style.left = (point.x - pointSize) + 'px';
-        pointElement.style.top = (point.y - pointSize) + 'px';
+        // Центрируем точку на её координатах (как в map-test.html)
+        pointElement.style.left = (point.x - pointWidth / 2) + 'px';
+        pointElement.style.top = (point.y - pointHeight / 2) + 'px';
         pointElement.textContent = index + 1;
+        
+        // Определяем сторону из данных точки
+        const side = point.side || (point.x < window.innerWidth / 2 ? 'left' : 'right');
+        
+        // Добавляем класс для стороны
+        if (side === 'left') {
+            pointElement.classList.add('left-side');
+        } else if (side === 'right') {
+            pointElement.classList.add('right-side');
+        } else {
+            pointElement.classList.add('center-side');
+        }
         
         // 3D позиционирование точки с учётом Z координаты
         const z = point.z || 20;
@@ -697,23 +948,26 @@ class Game {
         const offsetX = -toPoint.x + viewportWidth / 2;
         const offsetY = -toPoint.y + viewportHeight / 2;
         
+        // Убираем все предыдущие трансформации, чтобы избежать накопления
+        mapContainer.style.transform = '';
+        mapContainer.style.webkitTransform = '';
+        
         // Если instant = true, перемещаем мгновенно (без анимации)
         if (instant) {
             mapContainer.style.transition = 'none';
-        } else {
-            mapContainer.style.transition = 'transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        }
-        
-        mapContainer.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
-        mapContainer.style.webkitTransform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
-        
-        // Восстанавливаем transition после мгновенного перемещения
-        if (instant) {
+            // Используем translate3d для лучшей производительности
+            mapContainer.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+            mapContainer.style.webkitTransform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+            // Восстанавливаем transition после мгновенного перемещения
             setTimeout(() => {
                 if (mapContainer) {
                     mapContainer.style.transition = 'transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                 }
-            }, 100);
+            }, 50);
+        } else {
+            mapContainer.style.transition = 'transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            mapContainer.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+            mapContainer.style.webkitTransform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
         }
     }
     
@@ -1280,9 +1534,21 @@ class Game {
             return;
         }
         
+        // Получаем точки для определения позиций мяча
+        const points = this.calculateMapPoints();
+        const currentPoint = points[this.currentStage];
+        const nextPoint = points[targetStage];
+        
+        // Определяем, с какой стороны был мяч и куда он должен перейти
+        const currentSide = currentPoint ? (currentPoint.side || 'left') : 'left';
+        const nextSide = nextPoint ? (nextPoint.side || 'right') : 'right';
+        
         // Обновляем текущий этап
         this.currentStage = targetStage;
         this.saveProgress();
+        
+        // Анимируем перекидывание мяча к следующему игроку
+        this.animateBallToPlayer(nextPoint);
         
         // Получаем точки для перемещения персонажа
         const points = this.calculateMapPoints();
