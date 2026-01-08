@@ -5,7 +5,7 @@ class Game {
         this.currentStage = 0;
         this.totalStages = GAME_CONFIG.totalStages;
         this.isMusicPlaying = false;
-        this.isMusicEnabled = false;
+        this.isMusicEnabled = true; // Музыка включена по умолчанию
         this.progressKey = 'footballQuest30_progress';
         
         // Список музыкальных треков для проигрывания по очереди
@@ -194,6 +194,18 @@ class Game {
             
             // Загружаем первый трек
             this.loadTrack(this.currentTrackIndex);
+            
+            // Если музыка включена по умолчанию, запускаем её после загрузки
+            if (this.isMusicEnabled) {
+                this.backgroundMusic.addEventListener('loadeddata', () => {
+                    this.isMusicPlaying = true;
+                    this.backgroundMusic.play().catch(error => {
+                        console.log('Автоплей заблокирован браузером, пользователь должен включить музыку вручную');
+                        this.isMusicEnabled = false;
+                        this.isMusicPlaying = false;
+                    });
+                }, { once: true });
+            }
         }
     }
     
@@ -281,16 +293,8 @@ class Game {
                 this.startBallBtn.style.display = 'block';
             }
             
-            // Центрируем камеру на центре поля (не на первой точке, чтобы видеть всю карту)
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const centerPoint = {
-                x: viewportWidth / 2,
-                y: viewportHeight / 2,
-                z: 0,
-                index: 0
-            };
-            this.moveCamera(centerPoint, true);
+            // Камера остается статичной в центре поля (не двигаем её)
+            // Начальная позиция камеры уже установлена в CSS (translate3d(0, 0, 0))
         }, 1000);
     }
     
@@ -310,7 +314,7 @@ class Game {
         const points = this.calculateMapPoints();
         if (!points || points.length === 0) return;
         
-        // Первый квест - вратарь слева (номер 1, индекс 0)
+        // Первый квест - вратарь справа (номер 1, нечетный, индекс 0)
         const firstQuestPoint = points[0];
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
@@ -319,12 +323,12 @@ class Game {
         const startX = viewportWidth / 2;
         const startY = viewportHeight * 0.8;
         
-        // Конечная позиция (центральная точка - первый квест)
+        // Конечная позиция (первый квест - вратарь справа)
         const endX = firstQuestPoint.x;
         const endY = firstQuestPoint.y;
         
-        // Центрируем камеру на центральной точке перед анимацией
-        this.moveCamera(firstQuestPoint, true);
+        // НЕ двигаем камеру перед анимацией - оставляем обзор всего поля
+        // Камера будет центрирована в startGame
         
         // Устанавливаем начальную позицию мяча
         ball.style.left = (startX - 17.5) + 'px';
@@ -348,6 +352,7 @@ class Game {
                 // После падения показываем задание
                 setTimeout(() => {
                     ball.classList.remove('moving');
+                    // Камера остается статичной
                     this.showScreen('taskScreen');
                     this.startStage();
                 }, 700);
@@ -363,14 +368,7 @@ class Game {
         
         // Увеличенная задержка для гарантии, что карта отрисовалась и камера центрирована
         setTimeout(() => {
-            // Дополнительная проверка и центрирование камеры на текущей точке
-            const points = this.calculateMapPoints();
-            if (points && points.length > 0) {
-                const currentPoint = points[this.currentStage] || points[0];
-                if (currentPoint) {
-                    this.moveCamera(currentPoint, true);
-                }
-            }
+            // Камера остается статичной - не двигаем её
             
             // После отрисовки карты показываем задание
             setTimeout(() => {
@@ -468,14 +466,7 @@ class Game {
             // Обновить прогресс
             this.updateProgress();
             
-            // Центрируем камеру только если это не начальный экран (где currentStage = 0)
-            // На начальном экране камера центрируется в startGame
-            if (targetPoint && this.currentStage > 0) {
-                requestAnimationFrame(() => {
-                    this.moveCamera(targetPoint, true);
-                });
-            }
-            
+            // Камера остается статичной - не двигаем её
             // Снимаем флаг после завершения обновления
             this.isUpdatingMap = false;
         }, 200); // Увеличиваем задержку для гарантии отрисовки
@@ -509,130 +500,160 @@ class Game {
     }
     
     // Вынесенный метод для расчета точек с конкретными размерами
-    // Расстановка по футбольной схеме: вратарь, защитники, полузащитники, нападающие
+    // Нечетные справа, четные слева (зеркально)
     calculatePointsWithSize(mapWidth, mapHeight) {
         const points = [];
         
         const centerX = mapWidth / 2;
         const centerY = mapHeight / 2;
-        const isMobile = mapWidth <= 768;
         
-        // Левая сторона (12 игроков: 1-12)
-        // Вратарь (1) - в воротах слева
-        points.push({ 
-            x: mapWidth * 0.08, 
-            y: centerY, 
-            z: 0, 
-            index: 0,
-            side: 'left',
-            position: 'goalkeeper'
-        });
-        
-        // Защитники (2-4) - перед воротами, в линию
+        // Координаты для позиций (используем для обеих сторон)
         const defendersY = [centerY - mapHeight * 0.15, centerY, centerY + mapHeight * 0.15];
-        for (let i = 0; i < 3; i++) {
-            points.push({ 
-                x: mapWidth * 0.15, 
-                y: defendersY[i], 
-                z: 5, 
-                index: i + 1,
-                side: 'left',
-                position: 'defender'
-            });
-        }
-        
-        // Полузащитники (5-8) - в центре левой половины
         const midfieldersY = [
             centerY - mapHeight * 0.2,
             centerY - mapHeight * 0.07,
             centerY + mapHeight * 0.07,
             centerY + mapHeight * 0.2
         ];
-        for (let i = 0; i < 4; i++) {
-            points.push({ 
-                x: mapWidth * 0.25, 
-                y: midfieldersY[i], 
-                z: 10, 
-                index: i + 4,
-                side: 'left',
-                position: 'midfielder'
-            });
-        }
-        
-        // Нападающие (9-12) - ближе к центру поля
         const forwardsY = [
             centerY - mapHeight * 0.18,
             centerY - mapHeight * 0.06,
             centerY + mapHeight * 0.06,
             centerY + mapHeight * 0.18
         ];
-        for (let i = 0; i < 4; i++) {
-            points.push({ 
-                x: mapWidth * 0.38, 
-                y: forwardsY[i], 
-                z: 15, 
-                index: i + 8,
-                side: 'left',
-                position: 'forward'
-            });
-        }
         
-        // Правая сторона (12 игроков: 13-24)
-        // Вратарь (13) - в воротах справа
-        points.push({ 
-            x: mapWidth * 0.92, 
-            y: centerY, 
+        // Создаем массив для всех 25 точек
+        // Нечетные (1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25) - справа
+        // Четные (2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24) - слева
+        
+        let pointIndex = 0;
+        
+        // Распределяем точки: нечетные справа, четные слева (зеркально)
+        // Формируем массивы позиций для каждой стороны
+        const rightPositions = []; // Нечетные: 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25
+        const leftPositions = [];  // Четные: 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24
+        
+        // Вратари - ограничиваем координаты в пределах поля
+        const paddingX = 50;
+        const paddingY = 50;
+        rightPositions.push({ 
+            x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.92)), 
+            y: Math.max(paddingY, Math.min(mapHeight - paddingY, centerY)), 
             z: 0, 
-            index: 12,
-            side: 'right',
-            position: 'goalkeeper'
-        });
+            pos: 'goalkeeper' 
+        }); // 1
+        leftPositions.push({ 
+            x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.08)), 
+            y: Math.max(paddingY, Math.min(mapHeight - paddingY, centerY)), 
+            z: 0, 
+            pos: 'goalkeeper' 
+        });  // 2
         
-        // Защитники (14-16) - перед воротами, в линию
-        for (let i = 0; i < 3; i++) {
-            points.push({ 
-                x: mapWidth * 0.85, 
-                y: defendersY[i], 
-                z: 5, 
-                index: i + 13,
-                side: 'right',
-                position: 'defender'
-            });
-        }
+        // Защитники (по 2 с каждой стороны) - ограничиваем координаты
+        rightPositions.push({ 
+            x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.85)), 
+            y: Math.max(paddingY, Math.min(mapHeight - paddingY, defendersY[0])), 
+            z: 5, 
+            pos: 'defender' 
+        }); // 3
+        leftPositions.push({ 
+            x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.15)), 
+            y: Math.max(paddingY, Math.min(mapHeight - paddingY, defendersY[0])), 
+            z: 5, 
+            pos: 'defender' 
+        });  // 4
+        rightPositions.push({ 
+            x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.85)), 
+            y: Math.max(paddingY, Math.min(mapHeight - paddingY, defendersY[2])), 
+            z: 5, 
+            pos: 'defender' 
+        }); // 5
+        leftPositions.push({ 
+            x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.15)), 
+            y: Math.max(paddingY, Math.min(mapHeight - paddingY, defendersY[2])), 
+            z: 5, 
+            pos: 'defender' 
+        });  // 6
         
-        // Полузащитники (17-20) - в центре правой половины
+        // Полузащитники (по 4 с каждой стороны) - ограничиваем координаты
         for (let i = 0; i < 4; i++) {
-            points.push({ 
-                x: mapWidth * 0.75, 
-                y: midfieldersY[i], 
+            rightPositions.push({ 
+                x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.75)), 
+                y: Math.max(paddingY, Math.min(mapHeight - paddingY, midfieldersY[i])), 
                 z: 10, 
-                index: i + 16,
-                side: 'right',
-                position: 'midfielder'
-            });
+                pos: 'midfielder' 
+            }); // 7, 9, 11, 13
+            leftPositions.push({ 
+                x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.25)), 
+                y: Math.max(paddingY, Math.min(mapHeight - paddingY, midfieldersY[i])), 
+                z: 10, 
+                pos: 'midfielder' 
+            });  // 8, 10, 12, 14
         }
         
-        // Нападающие (21-24) - ближе к центру поля
+        // Нападающие (по 4 с каждой стороны) - ограничиваем координаты
         for (let i = 0; i < 4; i++) {
-            points.push({ 
-                x: mapWidth * 0.62, 
-                y: forwardsY[i], 
+            rightPositions.push({ 
+                x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.62)), 
+                y: Math.max(paddingY, Math.min(mapHeight - paddingY, forwardsY[i])), 
                 z: 15, 
-                index: i + 20,
-                side: 'right',
-                position: 'forward'
-            });
+                pos: 'forward' 
+            }); // 15, 17, 19, 21
+            leftPositions.push({ 
+                x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.38)), 
+                y: Math.max(paddingY, Math.min(mapHeight - paddingY, forwardsY[i])), 
+                z: 15, 
+                pos: 'forward' 
+            });  // 16, 18, 20, 22
         }
+        
+        // Еще 2 позиции - ограничиваем координаты
+        rightPositions.push({ 
+            x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.7)), 
+            y: Math.max(paddingY, Math.min(mapHeight - paddingY, centerY - mapHeight * 0.1)), 
+            z: 12, 
+            pos: 'midfielder' 
+        }); // 23
+        leftPositions.push({ 
+            x: Math.max(paddingX, Math.min(mapWidth - paddingX, mapWidth * 0.3)), 
+            y: Math.max(paddingY, Math.min(mapHeight - paddingY, centerY + mapHeight * 0.1)), 
+            z: 12, 
+            pos: 'midfielder' 
+        });  // 24
         
         // Центр поля (25) - финал
-        points.push({ 
-            x: centerX, 
-            y: centerY, 
-            z: 30, 
-            index: 24,
-            side: 'center',
-            position: 'final'
-        });
+        rightPositions.push({ x: centerX, y: centerY, z: 30, pos: 'final' }); // 25
+        
+        // Теперь создаем точки в правильном порядке: 1, 2, 3, 4, ...
+        for (let number = 1; number <= 25; number++) {
+            const isOdd = number % 2 === 1;
+            let pos;
+            
+            if (number === 25) {
+                // Финал в центре
+                pos = rightPositions[rightPositions.length - 1];
+            } else if (isOdd) {
+                // Нечетные справа
+                const idx = Math.floor((number - 1) / 2);
+                pos = rightPositions[idx];
+            } else {
+                // Четные слева
+                const idx = Math.floor((number - 2) / 2);
+                pos = leftPositions[idx];
+            }
+            
+            points.push({
+                x: pos.x,
+                y: pos.y,
+                z: pos.z,
+                index: pointIndex,
+                side: isOdd ? 'right' : (number === 25 ? 'center' : 'left'),
+                position: pos.pos,
+                number: number
+            });
+            
+            pointIndex++;
+        }
         
         return points;
     }
@@ -785,10 +806,10 @@ class Game {
         ball.style.top = (currentPoint.y - 17.5) + 'px';
     }
     
-    // Анимация перекидывания мяча к конкретному игроку
+    // Анимация перекидывания мяча к конкретному игроку (персонаж бежит за мячом)
     animateBallToPlayer(targetPoint) {
         const ball = this.map ? this.map.querySelector('.football-ball') : null;
-        if (!ball || !targetPoint) return;
+        if (!ball || !targetPoint || !this.character) return;
         
         const points = this.calculateMapPoints();
         if (!points || points.length === 0) return;
@@ -799,7 +820,11 @@ class Game {
         const endX = targetPoint.x;
         const endY = targetPoint.y;
         
-        // Добавляем класс для анимации подпрыгивания
+        // Позиционируем персонажа в начальной точке
+        this.positionCharacter(currentPoint);
+        this.character.classList.add('running');
+        
+        // Добавляем класс для анимации подпрыгивания мяча
         ball.classList.add('moving');
         
         // Анимируем движение мяча к игроку
@@ -807,9 +832,21 @@ class Game {
         ball.style.left = (endX - 17.5) + 'px';
         ball.style.top = (endY - 17.5) + 'px';
         
+        // Персонаж бежит за мячом (с небольшой задержкой)
+        setTimeout(() => {
+            const isMobile = window.innerWidth <= 768;
+            const characterSize = isMobile ? 25 : 30;
+            this.character.style.transition = 'left 1.2s cubic-bezier(0.4, 0, 0.2, 1), top 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+            this.character.style.left = (endX - characterSize / 2) + 'px';
+            this.character.style.top = (endY - characterSize / 2) + 'px';
+        }, 100);
+        
         // Убираем класс анимации после завершения
         setTimeout(() => {
             ball.classList.remove('moving');
+            if (this.character) {
+                this.character.classList.remove('running');
+            }
         }, 1200);
     }
     
@@ -825,7 +862,11 @@ class Game {
         // Центрируем точку на её координатах (как в map-test.html)
         pointElement.style.left = (point.x - pointWidth / 2) + 'px';
         pointElement.style.top = (point.y - pointHeight / 2) + 'px';
-        pointElement.textContent = index + 1;
+        
+        // Показываем правильный номер из данных точки
+        const pointNumber = point.number || (index + 1);
+        pointElement.textContent = pointNumber;
+        pointElement.dataset.pointNumber = pointNumber;
         
         // Определяем сторону из данных точки
         const side = point.side || (point.x < window.innerWidth / 2 ? 'left' : 'right');
@@ -855,6 +896,12 @@ class Game {
             pointElement.style.cursor = 'pointer';
             pointElement.addEventListener('click', () => {
                 this.goToStage(index);
+            });
+        } else {
+            // Недоступные точки - показываем саркастическое сообщение при клике
+            pointElement.style.cursor = 'not-allowed';
+            pointElement.addEventListener('click', () => {
+                this.showSarcasticMessage(pointNumber);
             });
         }
         
@@ -916,8 +963,7 @@ class Game {
             this.character.style.transform = `translateZ(${targetZ}px) rotateY(${rotateY}deg)`;
             this.character.style.webkitTransform = `translateZ(${targetZ}px) rotateY(${rotateY}deg)`;
             
-            // Движение камеры - следуем за персонажем
-            this.moveCamera(toPoint);
+            // Камера остается статичной - не двигаем её за персонажем
             
             setTimeout(() => {
                 if (this.character) {
@@ -1373,8 +1419,8 @@ class Game {
                 const img = document.createElement('img');
                 img.src = content.imagePath;
                 img.alt = content.title || 'Изображение';
-                img.style.maxWidth = '100%';
-                img.style.height = 'auto';
+                // Стили для полноэкранного отображения
+                img.style.cssText = 'max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;';
                 img.onerror = () => this.handleImageError(img);
                 img.onload = () => this.hideLoader();
                 this.showLoader();
@@ -1384,7 +1430,8 @@ class Game {
                 video.src = content.videoPath;
                 video.controls = true;
                 video.preload = 'metadata';
-                video.style.maxWidth = '100%';
+                // Стили для полноэкранного отображения
+                video.style.cssText = 'max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;';
                 video.onloadeddata = () => this.hideLoader();
                 // Обработчик ошибки загрузки
                 video.addEventListener('error', () => {
@@ -1395,12 +1442,7 @@ class Game {
             } else {
                 // Текстовый контент (по умолчанию)
                 const textContent = document.createElement('p');
-                textContent.style.fontSize = '1.3rem';
-                textContent.style.textAlign = 'center';
-                textContent.style.padding = '20px';
-                textContent.style.background = '#f0f0f0';
-                textContent.style.borderRadius = '10px';
-                textContent.style.lineHeight = '1.8';
+                textContent.style.cssText = 'font-size: 1.3rem; text-align: center; padding: 20px; background: #f0f0f0; border-radius: 10px; line-height: 1.8; max-width: 100%; word-wrap: break-word;';
                 textContent.textContent = content.content || content.description || 'Памятный момент';
                 this.modalBody.appendChild(textContent);
                 this.hideLoader();
@@ -1519,10 +1561,61 @@ class Game {
         });
     }
     
+    // Саркастические сообщения при попытке кликнуть не на ту точку
+    showSarcasticMessage(pointNumber) {
+        const messages = [
+            `Деревенский, ты считать разучился? Сначала ${this.currentStage + 1}, потом ${pointNumber}!`,
+            `Эй, счетовод! Нужно пройти ${this.currentStage + 1}, а не ${pointNumber}!`,
+            `Считать не умеешь? Следующий этап - ${this.currentStage + 1}, а не ${pointNumber}!`,
+            `Деревенский, порядок нарушил! Сначала ${this.currentStage + 1}!`,
+            `Куда лезешь? Этап ${this.currentStage + 1} еще не прошел, а ты на ${pointNumber}!`,
+            `Последовательность, братан! Сначала ${this.currentStage + 1}, потом ${pointNumber}!`,
+            `Ты что, считать не умеешь? Нужен этап ${this.currentStage + 1}, а не ${pointNumber}!`
+        ];
+        
+        const message = messages[Math.floor(Math.random() * messages.length)];
+        
+        // Показываем временное сообщение
+        const messageEl = document.createElement('div');
+        messageEl.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(220, 20, 60, 0.95);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            border: 3px solid #FFD700;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            z-index: 10000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            animation: messagePulse 0.3s ease;
+        `;
+        messageEl.textContent = message;
+        document.body.appendChild(messageEl);
+        
+        // Удаляем через 3 секунды
+        setTimeout(() => {
+            messageEl.style.animation = 'messageFadeOut 0.3s ease';
+            setTimeout(() => {
+                messageEl.remove();
+            }, 300);
+        }, 3000);
+    }
+    
     // Клик по точке на карте (интерактивное управление)
     goToStage(targetStage) {
         // Можно идти только на следующий этап
         if (targetStage !== this.currentStage + 1 || targetStage >= this.totalStages) {
+            // Показываем саркастическое сообщение
+            const points = this.calculateMapPoints();
+            if (points && points[targetStage]) {
+                const pointNumber = points[targetStage].number || (targetStage + 1);
+                this.showSarcasticMessage(pointNumber);
+            }
             return;
         }
         
@@ -1546,43 +1639,25 @@ class Game {
         const currentPoint = points[this.currentStage];
         const nextPoint = points[targetStage];
         
-        // Определяем, с какой стороны был мяч и куда он должен перейти
-        const currentSide = currentPoint ? (currentPoint.side || 'left') : 'left';
-        const nextSide = nextPoint ? (nextPoint.side || 'right') : 'right';
-        
         // Обновляем текущий этап
         this.currentStage = targetStage;
         this.saveProgress();
         
-        // Анимируем перекидывание мяча к следующему игроку
-        this.animateBallToPlayer(nextPoint);
-        
-        const previousPoint = points[this.currentStage - 1];
-        const targetPoint = points[this.currentStage];
-        
-        // Показываем карту для движения персонажа
+        // Показываем карту для движения персонажа и мяча
         this.showScreen('mapScreen');
         this.updateMap();
         
-        if (targetPoint) {
-            // Перемещаем персонажа от предыдущей точки к текущей
-            if (previousPoint) {
-                this.positionCharacter(previousPoint);
-            }
+        // Анимируем перекидывание мяча к следующему игроку (персонаж бежит за мячом)
+        // Делаем это после обновления карты, чтобы все элементы были на месте
+        setTimeout(() => {
+            this.animateBallToPlayer(nextPoint);
             
+            // После завершения анимации показываем задание
             setTimeout(() => {
-                this.moveCharacter(targetPoint).then(() => {
-                    // После движения показываем задание
-                    setTimeout(() => {
-                        this.showScreen('taskScreen');
-                        this.startStage();
-                    }, 300);
-                });
-            }, 200);
-        } else {
-            this.showScreen('taskScreen');
-            this.startStage();
-        }
+                this.showScreen('taskScreen');
+                this.startStage();
+            }, 1300);
+        }, 300);
     }
     
     nextStage() {
@@ -1662,8 +1737,9 @@ class Game {
         }
         
         if (!this.isMusicEnabled) {
-            // Первый раз включаем музыку
+            // Включаем музыку
             this.isMusicEnabled = true;
+            this.isMusicPlaying = true;
             
             // Убеждаемся, что трек загружен
             if (!this.backgroundMusic.src || this.backgroundMusic.src === window.location.href) {
