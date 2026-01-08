@@ -459,13 +459,13 @@ class Game {
     calculatePointsWithSize(mapWidth, mapHeight) {
         const points = [];
         
-        // Адаптивный padding в зависимости от размера экрана (меньше padding для полного экрана)
+        // Адаптивный padding в зависимости от размера экрана (минимальный для полного экрана)
         const isMobile = mapWidth <= 768;
-        const padding = isMobile ? 50 : 80;
+        const padding = isMobile ? 40 : 60;
         
-        // Доступная область для размещения точек (в пределах экрана)
-        const availableWidth = Math.max(300, mapWidth - padding * 2);
-        const availableHeight = Math.max(300, mapHeight - padding * 2);
+        // Доступная область для размещения точек (в пределах экрана, используем весь доступный размер)
+        const availableWidth = mapWidth - padding * 2;
+        const availableHeight = mapHeight - padding * 2;
         
         // Создаём путь в виде зигзага/серпантина
         // На мобильных делаем более компактный путь (3 колонки), на десктопах - 5
