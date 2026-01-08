@@ -509,9 +509,10 @@ class Game {
                 x = startX + offsetFromCenter;
             }
             
-            // Ограничиваем точки в пределах экрана
-            x = Math.max(paddingX, Math.min(mapWidth - paddingX, x));
-            y = Math.max(paddingY, Math.min(mapHeight - paddingY, y));
+            // Ограничиваем точки в пределах экрана (с запасом для элементов)
+            const margin = 30;
+            x = Math.max(paddingX + margin, Math.min(mapWidth - paddingX - margin, x));
+            y = Math.max(paddingY + margin, Math.min(mapHeight - paddingY - margin, y));
             
             points.push({ x, y, z, index: i });
         }
