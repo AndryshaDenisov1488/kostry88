@@ -440,9 +440,7 @@ class Game {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         
-        // Карта теперь 100% размера контейнера, который равен viewport
-        // Но из-за 3D трансформации может быть небольшое искажение
-        // Используем размер viewport напрямую, так как карта заполняет весь контейнер
+        // Карта занимает весь экран, используем точные размеры viewport
         const mapWidth = viewportWidth;
         const mapHeight = viewportHeight;
         
@@ -461,13 +459,13 @@ class Game {
     calculatePointsWithSize(mapWidth, mapHeight) {
         const points = [];
         
-        // Адаптивный padding в зависимости от размера экрана
+        // Адаптивный padding в зависимости от размера экрана (меньше padding для полного экрана)
         const isMobile = mapWidth <= 768;
-        const padding = isMobile ? 80 : 150;
+        const padding = isMobile ? 50 : 80;
         
-        // Доступная область для размещения точек
-        const availableWidth = Math.max(400, mapWidth - padding * 2);
-        const availableHeight = Math.max(400, mapHeight - padding * 2);
+        // Доступная область для размещения точек (в пределах экрана)
+        const availableWidth = Math.max(300, mapWidth - padding * 2);
+        const availableHeight = Math.max(300, mapHeight - padding * 2);
         
         // Создаём путь в виде зигзага/серпантина
         // На мобильных делаем более компактный путь (3 колонки), на десктопах - 5

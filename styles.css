@@ -35,12 +35,16 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 1;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .screen.active {
@@ -98,10 +102,13 @@ body {
 }
 
 .map-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    min-height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
     overflow: hidden;
     /* Трансформация для движения камеры */
     transform-style: preserve-3d;
@@ -116,9 +123,12 @@ body {
 
 .map {
     position: absolute;
-    /* Карта занимает весь контейнер, но элементы размещаются в пределах viewport */
-    width: 100%;
-    height: 100%;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
     /* Футбольное поле с разметкой */
     background: 
         /* Трава с полосками */
