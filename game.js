@@ -411,8 +411,17 @@ class Game {
         // Задержка для того, чтобы карта успела получить размеры
         // Используем больше времени для гарантии правильной отрисовки
         setTimeout(() => {
-            // Очистить карту
-            this.map.innerHTML = '';
+            // Очистить карту полностью (удаляем все точки, игроков, мяч)
+            // Сохраняем только персонажа, если он есть
+            const character = this.map.querySelector('.character');
+            const existingPoints = this.map.querySelectorAll('.map-point');
+            const existingPlayers = this.map.querySelectorAll('.field-player');
+            const existingBall = this.map.querySelector('.football-ball');
+            
+            // Удаляем все точки, игроков и мяч
+            existingPoints.forEach(el => el.remove());
+            existingPlayers.forEach(el => el.remove());
+            if (existingBall) existingBall.remove();
             
             // Создать путь и точки
             const points = this.calculateMapPoints();
@@ -436,13 +445,43 @@ class Game {
             // Нарисовать путь (если нужен)
             // this.drawPath(points);
             
-            // Нарисовать точки
+            // Нарисовать точки (проверяем уникальность номеров и предотвращаем дублирование)
+            const usedNumbers = new Set();
+            const createdPoints = new Map(); // Для отслеживания уже созданных точек по номеру
+            
             points.forEach((point, index) => {
+                // Проверяем, что номер точки уникален
+                if (point.number !== undefined) {
+                    if (usedNumbers.has(point.number)) {
+                        console.error(`[ERROR] ❌ ДУБЛИРОВАНИЕ номера точки: ${point.number} на индексе ${index}! Пропускаем эту точку.`);
+                        return; // Пропускаем дубликат
+                    }
+                    usedNumbers.add(point.number);
+                    createdPoints.set(point.number, point);
+                }
+                
                 const pointElement = this.createMapPoint(point, index);
                 if (pointElement && this.map) {
                     this.map.appendChild(pointElement);
                 }
             });
+            
+            // Проверяем, что все номера от 1 до 25 присутствуют
+            if (usedNumbers.size !== 25) {
+                console.warn(`[WARNING] ⚠️ Не все номера присутствуют! Ожидалось 25, найдено ${usedNumbers.size}`);
+                const missing = [];
+                for (let i = 1; i <= 25; i++) {
+                    if (!usedNumbers.has(i)) {
+                        missing.push(i);
+                    }
+                }
+                if (missing.length > 0) {
+                    console.warn(`[WARNING] Отсутствующие номера: ${missing.join(', ')}`);
+                }
+                console.log('[INFO] Присутствующие номера:', Array.from(usedNumbers).sort((a, b) => a - b));
+            } else {
+                console.log(`[OK] ✅ Все 25 номеров присутствуют и уникальны!`);
+            }
             
             // Позиционировать персонажа на текущей точке (без анимации)
             const targetPoint = points[this.currentStage] || points[0];
@@ -624,27 +663,56 @@ class Game {
         // Центр поля (25) - финал
         rightPositions.push({ x: centerX, y: centerY, z: 30, pos: 'final' }); // 25
         
+        // Проверяем количество элементов в массивах
+        console.log(`rightPositions.length = ${rightPositions.length}, должно быть 13`);
+        console.log(`leftPositions.length = ${leftPositions.length}, должно быть 12`);
+        
         // Теперь создаем точки в правильном порядке: 1, 2, 3, 4, ...
         for (let number = 1; number <= 25; number++) {
             const isOdd = number % 2 === 1;
             let pos;
             
             if (number === 25) {
-                // Финал в центре
-                pos = rightPositions[rightPositions.length - 1];
+                // Финал в центре (последний элемент rightPositions, индекс 12)
+                if (rightPositions.length < 13) {
+                    console.error(`Ошибка: rightPositions.length = ${rightPositions.length}, ожидалось 13`);
+                    continue;
+                }
+                pos = rightPositions[12]; // Явно указываем индекс 12
             } else if (isOdd) {
-                // Нечетные справа
+                // Нечетные справа: 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23
+                // Индексы в rightPositions: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+                // Формула: для number=1 → idx=0, для number=3 → idx=1, для number=5 → idx=2, ...
                 const idx = Math.floor((number - 1) / 2);
+                if (idx >= rightPositions.length - 1) {
+                    console.error(`Ошибка индекса для нечетного номера ${number}: idx=${idx}, rightPositions.length=${rightPositions.length}`);
+                    continue;
+                }
                 pos = rightPositions[idx];
             } else {
-                // Четные слева
+                // Четные слева: 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24
+                // Индексы в leftPositions: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+                // Формула: для number=2 → idx=0, для number=4 → idx=1, для number=6 → idx=2, ...
                 const idx = Math.floor((number - 2) / 2);
+                if (idx >= leftPositions.length) {
+                    console.error(`Ошибка индекса для четного номера ${number}: idx=${idx}, leftPositions.length=${leftPositions.length}`);
+                    continue;
+                }
                 pos = leftPositions[idx];
             }
             
+            if (!pos) {
+                console.error(`Не найдена позиция для номера ${number}`);
+                continue;
+            }
+            
+            // Ограничиваем координаты в пределах экрана (дополнительная проверка)
+            const finalX = Math.max(paddingX, Math.min(mapWidth - paddingX, pos.x));
+            const finalY = Math.max(paddingY, Math.min(mapHeight - paddingY, pos.y));
+            
             points.push({
-                x: pos.x,
-                y: pos.y,
+                x: finalX,
+                y: finalY,
                 z: pos.z,
                 index: pointIndex,
                 side: isOdd ? 'right' : (number === 25 ? 'center' : 'left'),
@@ -653,6 +721,19 @@ class Game {
             });
             
             pointIndex++;
+        }
+        
+        // Проверяем, что все номера уникальны
+        const numbers = points.map(p => p.number).filter(n => n !== undefined);
+        const uniqueNumbers = new Set(numbers);
+        if (numbers.length !== uniqueNumbers.size) {
+            console.error(`Обнаружены дублирующиеся номера! Всего точек: ${numbers.length}, уникальных: ${uniqueNumbers.size}`);
+            const duplicates = numbers.filter((n, i) => numbers.indexOf(n) !== i);
+            console.error(`Дублирующиеся номера: ${duplicates.join(', ')}`);
+        }
+        
+        if (points.length !== 25) {
+            console.error(`Ошибка: создано ${points.length} точек вместо 25!`);
         }
         
         return points;
@@ -741,21 +822,23 @@ class Game {
             { x: viewportWidth * 0.92, y: viewportHeight * 0.50 }, // Крайний правый (вратарь)
         ];
         
-        // Создаём игроков левой стороны
+        // Создаём игроков левой стороны (БЕЗ НОМЕРОВ - это декоративные элементы)
         leftPositions.forEach((pos, index) => {
             const player = document.createElement('div');
             player.className = 'field-player left-side';
-            player.textContent = index + 1;
+            // Убираем номера у декоративных игроков - они конфликтуют с номерами точек карты
+            // player.textContent = index + 1; // УДАЛЕНО
             player.style.left = (pos.x - 20) + 'px';
             player.style.top = (pos.y - 20) + 'px';
             this.map.appendChild(player);
         });
         
-        // Создаём игроков правой стороны
+        // Создаём игроков правой стороны (БЕЗ НОМЕРОВ - это декоративные элементы)
         rightPositions.forEach((pos, index) => {
             const player = document.createElement('div');
             player.className = 'field-player right-side';
-            player.textContent = index + 1;
+            // Убираем номера у декоративных игроков - они конфликтуют с номерами точек карты
+            // player.textContent = index + 1; // УДАЛЕНО
             player.style.left = (pos.x - 20) + 'px';
             player.style.top = (pos.y - 20) + 'px';
             this.map.appendChild(player);
@@ -863,10 +946,11 @@ class Game {
         pointElement.style.left = (point.x - pointWidth / 2) + 'px';
         pointElement.style.top = (point.y - pointHeight / 2) + 'px';
         
-        // Показываем правильный номер из данных точки
-        const pointNumber = point.number || (index + 1);
+        // Показываем правильный номер из данных точки (обязательно используем point.number)
+        const pointNumber = point.number !== undefined ? point.number : (index + 1);
         pointElement.textContent = pointNumber;
         pointElement.dataset.pointNumber = pointNumber;
+        pointElement.dataset.stageIndex = index; // Сохраняем индекс этапа для отладки
         
         // Определяем сторону из данных точки
         const side = point.side || (point.x < window.innerWidth / 2 ? 'left' : 'right');
