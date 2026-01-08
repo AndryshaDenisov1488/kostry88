@@ -461,11 +461,12 @@ class Game {
         
         // Адаптивный padding в зависимости от размера экрана (минимальный для полного экрана)
         const isMobile = mapWidth <= 768;
-        const padding = isMobile ? 40 : 60;
+        const paddingX = isMobile ? 30 : 50;
+        const paddingY = isMobile ? 40 : 60;
         
         // Доступная область для размещения точек (в пределах экрана, используем весь доступный размер)
-        const availableWidth = mapWidth - padding * 2;
-        const availableHeight = mapHeight - padding * 2;
+        const availableWidth = Math.max(200, mapWidth - paddingX * 2);
+        const availableHeight = Math.max(200, mapHeight - paddingY * 2);
         
         // Создаём путь в виде зигзага/серпантина
         // На мобильных делаем более компактный путь (3 колонки), на десктопах - 5
@@ -474,10 +475,11 @@ class Game {
         const segmentWidth = columns > 1 ? availableWidth / (columns - 1) : availableWidth;
         const segmentHeight = rows > 1 ? availableHeight / (rows - 1) : availableHeight;
         
-        // Начинаем с центра карты для видимости при старте
-        // Центр = середина viewport
-        let x = mapWidth / 2;
-        let y = mapHeight / 2;
+        // Начинаем с центра доступной области для видимости при старте
+        const startX = paddingX + availableWidth / 2;
+        const startY = paddingY + availableHeight / 2;
+        let x = startX;
+        let y = startY;
         let currentColumn = 0;
         
         // Первая точка в центре для лучшей видимости
@@ -487,7 +489,7 @@ class Game {
         }
         
         // Распределяем остальные точки по маршруту от центра
-        // Используем спираль или зигзаг от центра
+        // Используем зигзаг от центра в пределах доступной области
         for (let i = 1; i < this.totalStages; i++) {
             const z = Math.sin(i * 0.3) * 30;
             
@@ -496,16 +498,20 @@ class Game {
             // Если достигли конца строки, переходим на следующую
             if (currentColumn >= columns) {
                 currentColumn = 0;
-                y += segmentHeight;
+                y = paddingY + ((Math.floor(i / columns) + 1) * segmentHeight);
                 // Новая строка начинается от центра
-                x = mapWidth / 2;
+                x = startX;
             } else {
                 // Двигаемся в текущей строке от центра
                 // Вычисляем смещение от центра (может быть отрицательным)
                 const columnOffset = currentColumn - Math.floor(columns / 2);
                 const offsetFromCenter = columnOffset * segmentWidth;
-                x = mapWidth / 2 + offsetFromCenter;
+                x = startX + offsetFromCenter;
             }
+            
+            // Ограничиваем точки в пределах экрана
+            x = Math.max(paddingX, Math.min(mapWidth - paddingX, x));
+            y = Math.max(paddingY, Math.min(mapHeight - paddingY, y));
             
             points.push({ x, y, z, index: i });
         }
@@ -609,9 +615,9 @@ class Game {
         const isMobile = window.innerWidth <= 768;
         const characterSize = isMobile ? 25 : 30;
         
-        // 2D позиционирование
-        this.character.style.left = (point.x - characterSize) + 'px';
-        this.character.style.top = (point.y - characterSize) + 'px';
+        // 2D позиционирование (центр персонажа на точке)
+        this.character.style.left = (point.x - characterSize / 2) + 'px';
+        this.character.style.top = (point.y - characterSize / 2) + 'px';
         
         // 3D позиционирование - персонаж движется в 3D пространстве
         const z = point.z || 50;
@@ -633,15 +639,17 @@ class Game {
                 return;
             }
             
-            // Получаем текущую позицию персонажа
-            const currentLeft = parseInt(this.character.style.left) || toPoint.x - 30;
-            const currentTop = parseInt(this.character.style.top) || toPoint.y - 30;
-            
             // Адаптивный размер персонажа
             const isMobile = window.innerWidth <= 768;
             const characterSize = isMobile ? 25 : 30;
-            const targetLeft = toPoint.x - characterSize;
-            const targetTop = toPoint.y - characterSize;
+            
+            // Получаем текущую позицию персонажа
+            const currentLeft = parseInt(this.character.style.left) || toPoint.x - characterSize / 2;
+            const currentTop = parseInt(this.character.style.top) || toPoint.y - characterSize / 2;
+            
+            // Целевая позиция (центр персонажа на точке)
+            const targetLeft = toPoint.x - characterSize / 2;
+            const targetTop = toPoint.y - characterSize / 2;
             
             // 3D движение - персонаж движется по Z координате
             const targetZ = toPoint.z || 50;
