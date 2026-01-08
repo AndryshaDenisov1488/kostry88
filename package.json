@@ -1,0 +1,22 @@
+{
+  "name": "football-quest-30",
+  "version": "1.0.0",
+  "description": "Интерактивный квест-подарок к 30-летию в футбольно-угарном стиле",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8080 -o",
+    "serve": "npx http-server -p 8080"
+  },
+  "keywords": [
+    "quest",
+    "game",
+    "birthday",
+    "football",
+    "interactive"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
+

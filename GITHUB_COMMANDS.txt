@@ -1,0 +1,16 @@
+# Команды для загрузки в GitHub (копируйте по порядку)
+
+cd "C:\Users\User\Documents\Разработки\Разное\kostry88"
+
+git init
+
+git add .
+
+git commit -m "Initial commit - kostry88 project"
+
+git remote add origin https://github.com/AndryshaDenisov1488/kostry88.git
+
+git branch -M main
+
+git push -u origin main
+

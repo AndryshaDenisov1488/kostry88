@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="Интерактивный квест-подарок к 30-летию - футбольное приключение">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>30 лет - Сезон легенды</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Стартовый экран -->
+    <div id="startScreen" class="screen active">
+        <div class="start-content">
+            <h1 class="title">30 ЛЕТ</h1>
+            <h2 class="subtitle">Сезон легенды</h2>
+            <p class="tagline">Интерактивный квест-подарок</p>
+            <div class="start-buttons">
+                <button id="startBtn" class="btn btn-primary">Начать</button>
+                <button id="musicToggleBtn" class="btn btn-music">
+                    <span id="musicIcon">🔇</span> Музыка
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран карты -->
+    <div id="mapScreen" class="screen">
+        <div class="map-container">
+            <div id="map" class="map">
+                <!-- Точки будут добавлены через JS -->
+            </div>
+            <div id="character" class="character">
+                <div class="pig">🐷</div>
+            </div>
+            <div class="map-ui">
+                <button id="musicToggleBtnMap" class="btn btn-music-small">
+                    <span id="musicIconMap">🔇</span>
+                </button>
+                <div class="progress-info">
+                    <span id="progressText">Этап 1 из 25</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран задания -->
+    <div id="taskScreen" class="screen">
+        <div class="task-container">
+            <div class="task-content">
+                <h2 id="taskTitle" class="task-title"></h2>
+                <div id="taskBody" class="task-body">
+                    <!-- Содержимое задания будет добавлено через JS -->
+                </div>
+                <div id="taskFeedback" class="task-feedback hidden"></div>
+                <button id="continueBtn" class="btn btn-primary hidden">Дальше</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно с контентом -->
+    <div id="contentModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">&times;</button>
+            <h3 id="modalTitle" class="modal-title"></h3>
+            <div id="modalBody" class="modal-body">
+                <!-- Контент будет добавлен через JS -->
+            </div>
+            <p id="modalDescription" class="modal-description"></p>
+            <button id="modalNextBtn" class="btn btn-primary">Дальше</button>
+        </div>
+    </div>
+
+    <!-- Экран восстановления прогресса -->
+    <div id="restoreScreen" class="screen">
+        <div class="restore-content">
+            <h2>Продолжить игру?</h2>
+            <p>Вы остановились на этапе <span id="restoreStageNumber"></span> из 25</p>
+            <div class="restore-buttons">
+                <button id="restoreYesBtn" class="btn btn-primary">Продолжить</button>
+                <button id="restoreNoBtn" class="btn btn-secondary">Начать заново</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Финальный экран -->
+    <div id="finalScreen" class="screen">
+        <div class="final-content">
+            <div class="confetti-container" id="confettiContainer"></div>
+            <h1 class="final-title">🎉 Поздравляем! 🎉</h1>
+            <h2 class="final-subtitle">30 ЛЕТ - ЭТО ТОЛЬКО НАЧАЛО!</h2>
+            <div id="finalContent" class="final-body">
+                <!-- Финальный контент будет добавлен через JS -->
+            </div>
+            <button id="restartBtn" class="btn btn-primary">Начать заново</button>
+        </div>
+    </div>
+
+    <!-- Индикатор загрузки -->
+    <div id="loader" class="loader hidden">
+        <div class="loader-spinner"></div>
+        <p>Загружаю...</p>
+    </div>
+
+    <!-- Аудио элементы -->
+    <audio id="backgroundMusic" preload="auto"></audio>
+    <audio id="goalSound" preload="auto"></audio>
+    <audio id="applauseSound" preload="auto"></audio>
+
+    <script src="./config.js"></script>
+    <script src="./game.js"></script>
+</body>
+</html>
+
