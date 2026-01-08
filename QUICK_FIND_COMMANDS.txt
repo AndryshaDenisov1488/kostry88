@@ -1,0 +1,19 @@
+# Быстрые команды для поиска структуры
+
+# 1. Посмотреть структуру /home
+ls -la /home/
+
+# 2. Найти папки domains
+ls -la /home/*/domains/ 2>/dev/null
+
+# 3. Найти все public_html
+find /home -name "public_html" -type d 2>/dev/null
+find /var/www -name "public_html" -type d 2>/dev/null
+
+# 4. Найти все домены .ru
+find /home -type d -name "*.ru" 2>/dev/null | head -10
+find /var/www -type d -name "*.ru" 2>/dev/null | head -10
+
+# 5. Посмотреть /var/www
+ls -la /var/www/ 2>/dev/null
+
