@@ -310,8 +310,8 @@ class Game {
         const points = this.calculateMapPoints();
         if (!points || points.length === 0) return;
         
-        // Используем центральную точку сетки 5x5 как первый квест (индекс 12: row=2, col=2)
-        const firstQuestPoint = points[12] || points[Math.floor(points.length / 2)] || points[0];
+        // Первый квест - вратарь слева (номер 1, индекс 0)
+        const firstQuestPoint = points[0];
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
         
@@ -764,11 +764,15 @@ class Game {
         const ball = this.map ? this.map.querySelector('.football-ball') : null;
         if (!ball) return;
         
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+        const points = this.calculateMapPoints();
+        if (!points || points.length === 0) return;
+        
+        const currentPoint = points[this.currentStage] || points[0];
         
         // Если это начало игры (currentStage = 0), мяч внизу в центре
         if (this.currentStage === 0) {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
             const ballX = viewportWidth / 2;
             const ballY = viewportHeight * 0.8;
             ball.style.left = (ballX - 17.5) + 'px';
@@ -776,40 +780,37 @@ class Game {
             return;
         }
         
-        // Определяем, на какой стороне должен быть мяч
-        // Нечётные этапы - слева, чётные - справа (или наоборот)
-        const isLeftSide = this.currentStage % 2 === 0;
-        
-        const ballX = isLeftSide ? viewportWidth * 0.25 : viewportWidth * 0.75;
-        const ballY = viewportHeight * 0.50;
-        
-        ball.style.left = (ballX - 17.5) + 'px';
-        ball.style.top = (ballY - 17.5) + 'px';
+        // Позиционируем мяч у текущего игрока
+        ball.style.left = (currentPoint.x - 17.5) + 'px';
+        ball.style.top = (currentPoint.y - 17.5) + 'px';
     }
     
-    // Анимация перекидывания мяча
-    animateBallPass(fromLeft) {
+    // Анимация перекидывания мяча к конкретному игроку
+    animateBallToPlayer(targetPoint) {
         const ball = this.map ? this.map.querySelector('.football-ball') : null;
-        if (!ball) return;
+        if (!ball || !targetPoint) return;
         
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+        const points = this.calculateMapPoints();
+        if (!points || points.length === 0) return;
         
-        const startX = fromLeft ? viewportWidth * 0.25 : viewportWidth * 0.75;
-        const endX = fromLeft ? viewportWidth * 0.75 : viewportWidth * 0.25;
-        const centerY = viewportHeight * 0.50;
+        const currentPoint = points[this.currentStage - 1] || points[0];
+        const startX = currentPoint.x;
+        const startY = currentPoint.y;
+        const endX = targetPoint.x;
+        const endY = targetPoint.y;
         
         // Добавляем класс для анимации подпрыгивания
         ball.classList.add('moving');
         
-        // Анимируем движение мяча
+        // Анимируем движение мяча к игроку
+        ball.style.transition = 'left 1.2s cubic-bezier(0.4, 0, 0.2, 1), top 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
         ball.style.left = (endX - 17.5) + 'px';
-        ball.style.top = (centerY - 17.5) + 'px';
+        ball.style.top = (endY - 17.5) + 'px';
         
         // Убираем класс анимации после завершения
         setTimeout(() => {
             ball.classList.remove('moving');
-        }, 1500);
+        }, 1200);
     }
     
     createMapPoint(point, index) {
@@ -1534,8 +1535,14 @@ class Game {
             return;
         }
         
-        // Получаем точки для определения позиций мяча
+        // Получаем точки для определения позиций мяча и перемещения персонажа
         const points = this.calculateMapPoints();
+        if (!points || points.length === 0) {
+            this.showScreen('taskScreen');
+            this.startStage();
+            return;
+        }
+        
         const currentPoint = points[this.currentStage];
         const nextPoint = points[targetStage];
         
@@ -1550,29 +1557,21 @@ class Game {
         // Анимируем перекидывание мяча к следующему игроку
         this.animateBallToPlayer(nextPoint);
         
-        // Получаем точки для перемещения персонажа
-        const points = this.calculateMapPoints();
-        if (!points || points.length === 0) {
-            this.showScreen('taskScreen');
-            this.startStage();
-            return;
-        }
-        
         const previousPoint = points[this.currentStage - 1];
-        const currentPoint = points[this.currentStage];
+        const targetPoint = points[this.currentStage];
         
         // Показываем карту для движения персонажа
         this.showScreen('mapScreen');
         this.updateMap();
         
-        if (currentPoint) {
+        if (targetPoint) {
             // Перемещаем персонажа от предыдущей точки к текущей
             if (previousPoint) {
                 this.positionCharacter(previousPoint);
             }
             
             setTimeout(() => {
-                this.moveCharacter(currentPoint).then(() => {
+                this.moveCharacter(targetPoint).then(() => {
                     // После движения показываем задание
                     setTimeout(() => {
                         this.showScreen('taskScreen');

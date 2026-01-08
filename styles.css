@@ -481,6 +481,18 @@ body {
     border-color: var(--primary-white);
 }
 
+/* Центральная точка (номер 25 - финал) */
+.map-point.center-side {
+    background: var(--gold);
+    border-color: var(--primary-white);
+    border-width: 4px;
+    transform: translateZ(40px) scale(1.2);
+    -webkit-transform: translateZ(40px) scale(1.2);
+    box-shadow: 0 0 30px var(--gold),
+                0 12px 30px rgba(255, 215, 0, 0.6),
+                inset 0 3px 15px rgba(255, 255, 255, 0.5);
+}
+
 /* Кнопка "Разыграть мяч" */
 .start-ball-btn {
     position: fixed;
