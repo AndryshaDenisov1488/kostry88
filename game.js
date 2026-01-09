@@ -56,10 +56,16 @@ class Game {
         // Таймер для подсказок
         this.hintTimer = null;
         
-        // Проверяем ориентацию перед показом экранов (после setupElements)
+        // Проверяем ориентацию и показываем соответствующий экран
         // Используем небольшую задержку для гарантии, что все элементы загружены
         setTimeout(() => {
-            this.checkAndShowOrientationScreen();
+            if (!this.checkAndShowOrientationScreen()) {
+                // Если не портретная ориентация - показываем splash screen
+                if (!this.splashScreenShown) {
+                    this.showSplashScreen();
+                    this.splashScreenShown = true;
+                }
+            }
         }, 100);
     }
     
@@ -82,6 +88,10 @@ class Game {
     }
     
     checkAndShowOrientationScreen() {
+        // Обновляем проверку ориентации
+        this.isMobile = this.checkIfMobile();
+        this.isPortraitOrientation = this.checkOrientation();
+        
         // Если мобильное устройство и портретная ориентация - показываем заглушку
         if (this.isMobile && this.isPortraitOrientation) {
             if (this.orientationScreen) {
@@ -97,26 +107,21 @@ class Game {
             if (this.orientationScreen) {
                 this.orientationScreen.classList.add('hidden');
             }
-            // Показываем splash screen только если его еще не показывали
-            if (!this.splashScreenShown) {
-                this.showSplashScreen();
-                this.splashScreenShown = true;
-            }
             return false;
         }
     }
     
     showSplashScreen() {
-        // Проверяем ориентацию перед показом splash screen
+        // Если портретная ориентация - не показываем splash
         if (this.checkAndShowOrientationScreen()) {
-            return; // Если портретная ориентация - не показываем splash
+            return;
         }
         
         if (this.splashScreen) {
             this.splashScreen.classList.add('active');
             // Показываем splash screen 2 секунды, затем переключаемся
             setTimeout(() => {
-                // Еще раз проверяем ориентацию
+                // Еще раз проверяем ориентацию перед переходом
                 if (this.checkAndShowOrientationScreen()) {
                     if (this.splashScreen) {
                         this.splashScreen.classList.remove('active');
@@ -128,21 +133,23 @@ class Game {
                     this.splashScreen.classList.remove('active');
                 }
                 // Показать стартовый экран или экран восстановления
+                // Небольшая задержка для плавного перехода
+                setTimeout(() => {
+                    if (this.currentStage > 0 && this.currentStage < this.totalStages) {
+                        this.showRestoreScreen();
+                    } else {
+                        this.showScreen('startScreen');
+                    }
+                }, 300);
+            }, 2000);
+        } else {
+            // Если splash screen нет, сразу показываем основной экран
+            if (!this.checkAndShowOrientationScreen()) {
                 if (this.currentStage > 0 && this.currentStage < this.totalStages) {
                     this.showRestoreScreen();
                 } else {
                     this.showScreen('startScreen');
                 }
-            }, 2000);
-        } else {
-            // Если splash screen нет, сразу показываем основной экран
-            if (this.checkAndShowOrientationScreen()) {
-                return;
-            }
-            if (this.currentStage > 0 && this.currentStage < this.totalStages) {
-                this.showRestoreScreen();
-            } else {
-                this.showScreen('startScreen');
             }
         }
     }
@@ -398,9 +405,9 @@ class Game {
     }
     
     showScreen(screenId) {
-        // Проверяем ориентацию перед показом любого экрана
-        if (this.checkAndShowOrientationScreen()) {
-            return; // Блокируем показ экрана если портретная ориентация
+        // Проверяем ориентацию перед показом любого экрана (только на мобильных)
+        if (this.isMobile && this.checkAndShowOrientationScreen()) {
+            return; // Блокируем показ экрана если портретная ориентация на мобильном
         }
         
         // Скрыть все экраны
