@@ -201,6 +201,56 @@
 
     <script src="./config.js"></script>
     <script src="./game.js"></script>
+    <script>
+        // Фиксация viewport при повороте экрана на мобильных устройствах
+        (function() {
+            let lastWidth = window.innerWidth;
+            let lastHeight = window.innerHeight;
+            
+            function fixViewport() {
+                const currentWidth = window.innerWidth;
+                const currentHeight = window.innerHeight;
+                
+                // Если размеры изменились (поворот экрана)
+                if (currentWidth !== lastWidth || currentHeight !== lastHeight) {
+                    // Принудительно обновляем viewport
+                    const viewport = document.querySelector('meta[name="viewport"]');
+                    if (viewport) {
+                        const content = viewport.getAttribute('content');
+                        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+                        
+                        // Принудительно пересчитываем размеры
+                        setTimeout(() => {
+                            document.body.style.width = window.innerWidth + 'px';
+                            document.body.style.height = window.innerHeight + 'px';
+                            
+                            // Обновляем размеры всех экранов
+                            document.querySelectorAll('.screen').forEach(screen => {
+                                screen.style.width = window.innerWidth + 'px';
+                                screen.style.height = window.innerHeight + 'px';
+                            });
+                        }, 100);
+                    }
+                    
+                    lastWidth = currentWidth;
+                    lastHeight = currentHeight;
+                }
+            }
+            
+            // Обработка поворота
+            window.addEventListener('orientationchange', function() {
+                setTimeout(fixViewport, 300);
+            });
+            
+            // Обработка изменения размера
+            window.addEventListener('resize', function() {
+                setTimeout(fixViewport, 100);
+            });
+            
+            // Начальная установка
+            fixViewport();
+        })();
+    </script>
 </body>
 </html>
 

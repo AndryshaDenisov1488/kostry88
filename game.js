@@ -70,52 +70,51 @@ class Game {
     }
     
     setupOrientationHandler() {
-        let resizeTimeout;
-        
-        // Проверяем ориентацию при изменении размера окна
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                this.isPortraitOrientation = this.checkOrientation();
-                this.isMobile = this.checkIfMobile();
-                
-                // Если не портретная ориентация и карта активна - обновляем её
-                if (!this.isPortraitOrientation && this.mapScreen && this.mapScreen.classList.contains('active')) {
-                    this.updateMap();
-                }
-                
-                this.checkAndShowOrientationScreen();
-            }, 300);
-        });
-        
-        // Также проверяем при изменении ориентации (для мобильных устройств)
+        // Обработчик изменения ориентации (для мобильных устройств)
         window.addEventListener('orientationchange', () => {
-            // Увеличиваем задержку для корректной обработки поворота
+            // Увеличиваем задержку для корректной обработки поворота (viewport должен обновиться)
             setTimeout(() => {
                 // Принудительно обновляем размеры viewport
-                window.dispatchEvent(new Event('resize'));
+                const viewport = document.querySelector('meta[name="viewport"]');
+                if (viewport) {
+                    // Временно меняем viewport для принудительного пересчета
+                    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+                }
                 
+                // Обновляем проверку ориентации
                 this.isPortraitOrientation = this.checkOrientation();
                 this.isMobile = this.checkIfMobile();
                 
-                // Если перевернули в альбомную ориентацию и карта была видна - обновляем
+                // Проверяем и показываем/скрываем экран ориентации
+                if (this.checkAndShowOrientationScreen()) {
+                    return; // Если портретная - больше ничего не делаем
+                }
+                
+                // Если перевернули в альбомную ориентацию - обновляем все
                 if (!this.isPortraitOrientation) {
+                    // Если карта активна - обновляем её
                     if (this.mapScreen && this.mapScreen.classList.contains('active')) {
-                        // Небольшая задержка для стабилизации размеров
+                        // Сбрасываем трансформацию камеры
+                        const mapContainer = document.querySelector('.map-container');
+                        if (mapContainer) {
+                            mapContainer.style.transform = 'translate(0, 0)';
+                            mapContainer.style.webkitTransform = 'translate(0, 0)';
+                        }
+                        // Пересчитываем карту с задержкой для стабилизации размеров
                         setTimeout(() => {
                             this.updateMap();
                         }, 500);
                     }
-                    // Если был показан splash или стартовый экран - перезагружаем их
-                    if (this.startScreen && this.startScreen.classList.contains('active')) {
-                        // Перезагружаем страницу для корректной работы
-                        // Но лучше просто обновить отображение
+                    
+                    // Если был показан splash или стартовый экран - показываем их снова
+                    if (this.splashScreen && this.splashScreen.classList.contains('active')) {
+                        // Оставляем splash как есть
+                    } else if (this.startScreen && this.startScreen.classList.contains('active')) {
+                        // Показываем стартовый экран снова
                         this.showScreen('startScreen');
                     }
                 }
-                
-                this.checkAndShowOrientationScreen();
-            }, 300);
+            }, 500); // Увеличенная задержка для стабилизации viewport
         });
     }
     
@@ -204,15 +203,24 @@ class Game {
             // Дебаунс для избежания частых пересчётов
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                // Пересчитываем карту только если она активна
+                // Обновляем проверку ориентации
+                this.isMobile = this.checkIfMobile();
+                this.isPortraitOrientation = this.checkOrientation();
+                
+                // Пересчитываем карту только если она активна и не портретная ориентация
                 if (this.mapScreen && this.mapScreen.classList.contains('active')) {
-                    // Сбрасываем трансформацию камеры перед обновлением
-                    const mapContainer = document.querySelector('.map-container');
-                    if (mapContainer) {
-                        mapContainer.style.transform = 'translate(0, 0)';
-                        mapContainer.style.webkitTransform = 'translate(0, 0)';
+                    if (!this.isPortraitOrientation) {
+                        // Сбрасываем трансформацию камеры перед обновлением
+                        const mapContainer = document.querySelector('.map-container');
+                        if (mapContainer) {
+                            mapContainer.style.transform = 'translate(0, 0)';
+                            mapContainer.style.webkitTransform = 'translate(0, 0)';
+                        }
+                        // Пересчитываем карту с задержкой для стабилизации размеров
+                        setTimeout(() => {
+                            this.updateMap();
+                        }, 200);
                     }
-                    this.updateMap();
                 }
             }, 300);
         });
