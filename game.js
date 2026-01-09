@@ -18,7 +18,26 @@ class Game {
         // Флаг для предотвращения множественных обновлений карты
         this.isUpdatingMap = false;
         
+        // Инициализация флагов
+        this.splashScreenShown = false;
+        
+        // Проверка ориентации экрана (вызываем методы напрямую, без this)
+        this.isMobile = this.checkIfMobile();
+        this.isPortraitOrientation = this.checkOrientation();
+        
         this.init();
+    }
+    
+    // Проверка, является ли устройство мобильным
+    checkIfMobile() {
+        return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
+    // Проверка ориентации экрана
+    checkOrientation() {
+        const isMobile = this.checkIfMobile();
+        if (!isMobile) return false;
+        return window.innerHeight > window.innerWidth;
     }
     
     init() {
@@ -31,14 +50,112 @@ class Game {
         // Обработчик изменения размера окна
         this.setupResizeHandler();
         
+        // Обработчик изменения ориентации
+        this.setupOrientationHandler();
+        
         // Таймер для подсказок
         this.hintTimer = null;
         
-        // Показать стартовый экран или экран восстановления
-        if (this.currentStage > 0 && this.currentStage < this.totalStages) {
-            this.showRestoreScreen();
+        // Проверяем ориентацию перед показом экранов (после setupElements)
+        // Используем небольшую задержку для гарантии, что все элементы загружены
+        setTimeout(() => {
+            this.checkAndShowOrientationScreen();
+        }, 100);
+    }
+    
+    setupOrientationHandler() {
+        // Проверяем ориентацию при изменении размера окна
+        window.addEventListener('resize', () => {
+            this.isPortraitOrientation = this.checkOrientation();
+            this.isMobile = this.checkIfMobile();
+            this.checkAndShowOrientationScreen();
+        });
+        
+        // Также проверяем при изменении ориентации (для мобильных устройств)
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.isPortraitOrientation = this.checkOrientation();
+                this.isMobile = this.checkIfMobile();
+                this.checkAndShowOrientationScreen();
+            }, 100);
+        });
+    }
+    
+    checkAndShowOrientationScreen() {
+        // Если мобильное устройство и портретная ориентация - показываем заглушку
+        if (this.isMobile && this.isPortraitOrientation) {
+            if (this.orientationScreen) {
+                this.orientationScreen.classList.remove('hidden');
+                // Скрываем все остальные экраны
+                document.querySelectorAll('.screen, .splash-screen').forEach(screen => {
+                    screen.classList.remove('active');
+                });
+            }
+            return true; // Блокируем дальнейшую загрузку
         } else {
-            this.showScreen('startScreen');
+            // Альбомная ориентация или не мобильное устройство
+            if (this.orientationScreen) {
+                this.orientationScreen.classList.add('hidden');
+            }
+            // Показываем splash screen только если его еще не показывали
+            if (!this.splashScreenShown) {
+                this.showSplashScreen();
+                this.splashScreenShown = true;
+            }
+            return false;
+        }
+    }
+    
+    showSplashScreen() {
+        // Проверяем ориентацию перед показом splash screen
+        if (this.checkAndShowOrientationScreen()) {
+            return; // Если портретная ориентация - не показываем splash
+        }
+        
+        if (this.splashScreen) {
+            this.splashScreen.classList.add('active');
+            // Показываем splash screen 2 секунды, затем переключаемся
+            setTimeout(() => {
+                // Еще раз проверяем ориентацию
+                if (this.checkAndShowOrientationScreen()) {
+                    if (this.splashScreen) {
+                        this.splashScreen.classList.remove('active');
+                    }
+                    return;
+                }
+                
+                if (this.splashScreen) {
+                    this.splashScreen.classList.remove('active');
+                }
+                // Показать стартовый экран или экран восстановления
+                if (this.currentStage > 0 && this.currentStage < this.totalStages) {
+                    this.showRestoreScreen();
+                } else {
+                    this.showScreen('startScreen');
+                }
+            }, 2000);
+        } else {
+            // Если splash screen нет, сразу показываем основной экран
+            if (this.checkAndShowOrientationScreen()) {
+                return;
+            }
+            if (this.currentStage > 0 && this.currentStage < this.totalStages) {
+                this.showRestoreScreen();
+            } else {
+                this.showScreen('startScreen');
+            }
+        }
+    }
+    
+    showHowToPlay() {
+        if (this.howToPlayModal) {
+            this.howToPlayModal.classList.remove('hidden');
+        }
+    }
+    
+    hideHowToPlay() {
+        if (this.howToPlayModal) {
+            this.howToPlayModal.classList.add('hidden');
         }
     }
     
@@ -64,6 +181,8 @@ class Game {
     
     setupElements() {
         // Экраны
+        this.orientationScreen = document.getElementById('orientationScreen');
+        this.splashScreen = document.getElementById('splashScreen');
         this.startScreen = document.getElementById('startScreen');
         this.mapScreen = document.getElementById('mapScreen');
         this.taskScreen = document.getElementById('taskScreen');
@@ -72,6 +191,10 @@ class Game {
         
         // Кнопки
         this.startBtn = document.getElementById('startBtn');
+        this.howToPlayBtn = document.getElementById('howToPlayBtn');
+        this.howToPlayClose = document.getElementById('howToPlayClose');
+        this.howToPlayStartBtn = document.getElementById('howToPlayStartBtn');
+        this.howToPlayModal = document.getElementById('howToPlayModal');
         this.musicToggleBtn = document.getElementById('musicToggleBtn');
         this.musicToggleBtnMap = document.getElementById('musicToggleBtnMap');
         this.startBallBtn = document.getElementById('startBallBtn');
@@ -121,6 +244,25 @@ class Game {
         // Добавляем обработчики только если элементы существуют
         if (this.startBtn) {
             this.startBtn.addEventListener('click', () => this.startGame());
+        }
+        if (this.howToPlayBtn) {
+            this.howToPlayBtn.addEventListener('click', () => this.showHowToPlay());
+        }
+        if (this.howToPlayClose) {
+            this.howToPlayClose.addEventListener('click', () => this.hideHowToPlay());
+        }
+        if (this.howToPlayStartBtn) {
+            this.howToPlayStartBtn.addEventListener('click', () => {
+                this.hideHowToPlay();
+                this.startGame();
+            });
+        }
+        if (this.howToPlayModal) {
+            this.howToPlayModal.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal-overlay')) {
+                    this.hideHowToPlay();
+                }
+            });
         }
         if (this.musicToggleBtn) {
             this.musicToggleBtn.addEventListener('click', () => this.toggleMusic());
@@ -256,6 +398,11 @@ class Game {
     }
     
     showScreen(screenId) {
+        // Проверяем ориентацию перед показом любого экрана
+        if (this.checkAndShowOrientationScreen()) {
+            return; // Блокируем показ экрана если портретная ориентация
+        }
+        
         // Скрыть все экраны
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
@@ -1588,45 +1735,99 @@ class Game {
     }
     
     showHint() {
+        // Скрываем предыдущую подсказку, если есть
+        this.hideHint();
+        
         const points = this.calculateMapPoints();
         if (!points || points.length === 0) return;
         
-        const nextPoint = points[this.currentStage + 1];
+        const nextPointIndex = this.currentStage + 1;
+        if (nextPointIndex >= points.length) return;
+        
+        const nextPoint = points[nextPointIndex];
         if (!nextPoint) return;
         
         // Находим элемент точки на карте
         const mapPoints = this.map.querySelectorAll('.map-point');
-        const nextPointElement = mapPoints[this.currentStage + 1];
+        if (!mapPoints || mapPoints.length <= nextPointIndex) return;
         
-        if (nextPointElement) {
-            // Подсвечиваем следующую точку
-            nextPointElement.classList.add('hint-highlight');
-            
-            // Создаём подсказку
-            const hintElement = document.createElement('div');
-            hintElement.className = 'hint-popup';
-            hintElement.id = 'hintPopup';
+        const nextPointElement = Array.from(mapPoints).find(
+            point => parseInt(point.dataset.stageIndex) === nextPointIndex
+        );
+        
+        if (!nextPointElement) {
+            // Если не нашли по индексу, пробуем по номеру точки
+            const pointByNumber = Array.from(mapPoints).find(
+                point => parseInt(point.dataset.pointNumber) === nextPoint.number
+            );
+            if (!pointByNumber) return;
+            nextPointElement = pointByNumber;
+        }
+        
+        // Подсвечиваем следующую точку
+        nextPointElement.classList.add('hint-highlight');
+        
+        // Создаём подсказку
+        const hintElement = document.createElement('div');
+        hintElement.className = 'hint-popup';
+        hintElement.id = 'hintPopup';
+        hintElement.innerHTML = `
+            <div class="hint-content">
+                <p>Попробуй нажать сюда, деревенский! 👆</p>
+            </div>
+            <div class="hint-arrow"></div>
+        `;
+        
+        // Позиционируем подсказку относительно точки на карте
+        // Используем координаты точки, но с учетом смещения для правильного отображения
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const isMobile = viewportWidth <= 768;
+        
+        // Адаптивное позиционирование с учетом границ экрана
+        let offsetX = isMobile ? 50 : 60; // Смещение справа от точки
+        let offsetY = isMobile ? -40 : -30; // Смещение вверх от точки
+        
+        // Если точка справа, подсказка слева
+        if (nextPoint.x > viewportWidth / 2) {
+            offsetX = isMobile ? -180 : -220; // Смещение слева
+            // Меняем стрелку на другую сторону
             hintElement.innerHTML = `
                 <div class="hint-content">
                     <p>Попробуй нажать сюда, деревенский! 👆</p>
                 </div>
-                <div class="hint-arrow"></div>
+                <div class="hint-arrow hint-arrow-right"></div>
             `;
-            
-            // Позиционируем подсказку рядом с точкой
-            const rect = nextPointElement.getBoundingClientRect();
-            const mapRect = this.map.getBoundingClientRect();
-            
-            hintElement.style.left = (nextPoint.x + 40) + 'px';
-            hintElement.style.top = (nextPoint.y - 20) + 'px';
-            
-            this.map.appendChild(hintElement);
-            
-            // Анимация появления
-            setTimeout(() => {
-                hintElement.classList.add('visible');
-            }, 50);
         }
+        
+        // Проверяем границы по вертикали
+        if (nextPoint.y < 100) {
+            offsetY = 50; // Если точка сверху, подсказка снизу
+        } else if (nextPoint.y > viewportHeight - 100) {
+            offsetY = -80; // Если точка снизу, подсказка сверху
+        }
+        
+        hintElement.style.left = (nextPoint.x + offsetX) + 'px';
+        hintElement.style.top = (nextPoint.y + offsetY) + 'px';
+        
+        // Добавляем обработчик клика для закрытия подсказки
+        hintElement.addEventListener('click', () => {
+            this.hideHint();
+        });
+        
+        this.map.appendChild(hintElement);
+        
+        // Анимация появления
+        setTimeout(() => {
+            hintElement.classList.add('visible');
+        }, 50);
+        
+        // Автоматически скрываем подсказку через 15 секунд
+        setTimeout(() => {
+            if (hintElement && hintElement.parentNode) {
+                this.hideHint();
+            }
+        }, 15000);
     }
     
     hideHint() {
