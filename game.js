@@ -11,7 +11,8 @@ class Game {
         // Список музыкальных треков для проигрывания по очереди
         this.musicTracks = [
             './assets/audio/holigan.mp3',
-            './assets/audio/medlyak.mp3'
+            './assets/audio/medlyak.mp3',
+            './assets/audio/maksim.mp3'
         ];
         this.currentTrackIndex = 0;
         
@@ -21,23 +22,7 @@ class Game {
         // Инициализация флагов
         this.splashScreenShown = false;
         
-        // Проверка ориентации экрана (вызываем методы напрямую, без this)
-        this.isMobile = this.checkIfMobile();
-        this.isPortraitOrientation = this.checkOrientation();
-        
         this.init();
-    }
-    
-    // Проверка, является ли устройство мобильным
-    checkIfMobile() {
-        return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
-    
-    // Проверка ориентации экрана
-    checkOrientation() {
-        const isMobile = this.checkIfMobile();
-        if (!isMobile) return false;
-        return window.innerHeight > window.innerWidth;
     }
     
     init() {
@@ -50,121 +35,27 @@ class Game {
         // Обработчик изменения размера окна
         this.setupResizeHandler();
         
-        // Обработчик изменения ориентации
-        this.setupOrientationHandler();
-        
         // Таймер для подсказок
         this.hintTimer = null;
         
-        // Проверяем ориентацию и показываем соответствующий экран
-        // Используем небольшую задержку для гарантии, что все элементы загружены
+        // Показываем splash screen
         setTimeout(() => {
-            if (!this.checkAndShowOrientationScreen()) {
-                // Если не портретная ориентация - показываем splash screen
-                if (!this.splashScreenShown) {
-                    this.showSplashScreen();
-                    this.splashScreenShown = true;
-                }
+            if (!this.splashScreenShown) {
+                this.showSplashScreen();
+                this.splashScreenShown = true;
             }
         }, 100);
     }
     
-    setupOrientationHandler() {
-        // Обработчик изменения ориентации (для мобильных устройств)
-        window.addEventListener('orientationchange', () => {
-            // Увеличиваем задержку для корректной обработки поворота (viewport должен обновиться)
-            setTimeout(() => {
-                // Принудительно обновляем размеры viewport
-                const viewport = document.querySelector('meta[name="viewport"]');
-                if (viewport) {
-                    // Временно меняем viewport для принудительного пересчета
-                    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
-                }
-                
-                // Обновляем проверку ориентации
-                this.isPortraitOrientation = this.checkOrientation();
-                this.isMobile = this.checkIfMobile();
-                
-                // Проверяем и показываем/скрываем экран ориентации
-                if (this.checkAndShowOrientationScreen()) {
-                    return; // Если портретная - больше ничего не делаем
-                }
-                
-                // Если перевернули в альбомную ориентацию - обновляем все
-                if (!this.isPortraitOrientation) {
-                    // Если карта активна - обновляем её
-                    if (this.mapScreen && this.mapScreen.classList.contains('active')) {
-                        // Сбрасываем трансформацию камеры
-                        const mapContainer = document.querySelector('.map-container');
-                        if (mapContainer) {
-                            mapContainer.style.transform = 'translate(0, 0)';
-                            mapContainer.style.webkitTransform = 'translate(0, 0)';
-                        }
-                        // Пересчитываем карту с задержкой для стабилизации размеров
-                        setTimeout(() => {
-                            this.updateMap();
-                        }, 500);
-                    }
-                    
-                    // Если был показан splash или стартовый экран - показываем их снова
-                    if (this.splashScreen && this.splashScreen.classList.contains('active')) {
-                        // Оставляем splash как есть
-                    } else if (this.startScreen && this.startScreen.classList.contains('active')) {
-                        // Показываем стартовый экран снова
-                        this.showScreen('startScreen');
-                    }
-                }
-            }, 500); // Увеличенная задержка для стабилизации viewport
-        });
-    }
-    
-    checkAndShowOrientationScreen() {
-        // Обновляем проверку ориентации
-        this.isMobile = this.checkIfMobile();
-        this.isPortraitOrientation = this.checkOrientation();
-        
-        // Если мобильное устройство и портретная ориентация - показываем заглушку
-        if (this.isMobile && this.isPortraitOrientation) {
-            if (this.orientationScreen) {
-                this.orientationScreen.classList.remove('hidden');
-                // Скрываем все остальные экраны
-                document.querySelectorAll('.screen, .splash-screen').forEach(screen => {
-                    screen.classList.remove('active');
-                });
-            }
-            return true; // Блокируем дальнейшую загрузку
-        } else {
-            // Альбомная ориентация или не мобильное устройство
-            if (this.orientationScreen) {
-                this.orientationScreen.classList.add('hidden');
-            }
-            return false;
-        }
-    }
-    
     showSplashScreen() {
-        // Если портретная ориентация - не показываем splash
-        if (this.checkAndShowOrientationScreen()) {
-            return;
-        }
-        
         if (this.splashScreen) {
             this.splashScreen.classList.add('active');
             // Показываем splash screen 2 секунды, затем переключаемся
             setTimeout(() => {
-                // Еще раз проверяем ориентацию перед переходом
-                if (this.checkAndShowOrientationScreen()) {
-                    if (this.splashScreen) {
-                        this.splashScreen.classList.remove('active');
-                    }
-                    return;
-                }
-                
                 if (this.splashScreen) {
                     this.splashScreen.classList.remove('active');
                 }
                 // Показать стартовый экран или экран восстановления
-                // Небольшая задержка для плавного перехода
                 setTimeout(() => {
                     if (this.currentStage > 0 && this.currentStage < this.totalStages) {
                         this.showRestoreScreen();
@@ -175,12 +66,10 @@ class Game {
             }, 2000);
         } else {
             // Если splash screen нет, сразу показываем основной экран
-            if (!this.checkAndShowOrientationScreen()) {
-                if (this.currentStage > 0 && this.currentStage < this.totalStages) {
-                    this.showRestoreScreen();
-                } else {
-                    this.showScreen('startScreen');
-                }
+            if (this.currentStage > 0 && this.currentStage < this.totalStages) {
+                this.showRestoreScreen();
+            } else {
+                this.showScreen('startScreen');
             }
         }
     }
@@ -203,24 +92,18 @@ class Game {
             // Дебаунс для избежания частых пересчётов
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                // Обновляем проверку ориентации
-                this.isMobile = this.checkIfMobile();
-                this.isPortraitOrientation = this.checkOrientation();
-                
-                // Пересчитываем карту только если она активна и не портретная ориентация
+                // Пересчитываем карту только если она активна
                 if (this.mapScreen && this.mapScreen.classList.contains('active')) {
-                    if (!this.isPortraitOrientation) {
-                        // Сбрасываем трансформацию камеры перед обновлением
-                        const mapContainer = document.querySelector('.map-container');
-                        if (mapContainer) {
-                            mapContainer.style.transform = 'translate(0, 0)';
-                            mapContainer.style.webkitTransform = 'translate(0, 0)';
-                        }
-                        // Пересчитываем карту с задержкой для стабилизации размеров
-                        setTimeout(() => {
-                            this.updateMap();
-                        }, 200);
+                    // Сбрасываем трансформацию камеры перед обновлением
+                    const mapContainer = document.querySelector('.map-container');
+                    if (mapContainer) {
+                        mapContainer.style.transform = 'translate(0, 0)';
+                        mapContainer.style.webkitTransform = 'translate(0, 0)';
                     }
+                    // Пересчитываем карту с задержкой для стабилизации размеров
+                    setTimeout(() => {
+                        this.updateMap();
+                    }, 200);
                 }
             }, 300);
         });
@@ -228,7 +111,6 @@ class Game {
     
     setupElements() {
         // Экраны
-        this.orientationScreen = document.getElementById('orientationScreen');
         this.splashScreen = document.getElementById('splashScreen');
         this.startScreen = document.getElementById('startScreen');
         this.mapScreen = document.getElementById('mapScreen');
@@ -282,6 +164,7 @@ class Game {
         this.backgroundMusic = document.getElementById('backgroundMusic');
         this.goalSound = document.getElementById('goalSound');
         this.applauseSound = document.getElementById('applauseSound');
+        this.spasiboSound = document.getElementById('spasiboSound');
         
         // Загрузчик
         this.loader = document.getElementById('loader');
@@ -329,7 +212,16 @@ class Game {
             });
         }
         if (this.continueBtn) {
-            this.continueBtn.addEventListener('click', () => this.showContentModal());
+            this.continueBtn.addEventListener('click', () => {
+                // Проверяем, это последний вопрос?
+                if (this.currentStage === this.totalStages - 1) {
+                    // Если последний - показываем финальный экран
+                    this.showFinalScreen();
+                } else {
+                    // Иначе - показываем контент как обычно
+                    this.showContentModal();
+                }
+            });
         }
         if (this.restoreYesBtn) {
             this.restoreYesBtn.addEventListener('click', () => this.restoreGame());
@@ -366,6 +258,9 @@ class Game {
         if (this.applauseSound) {
             this.applauseSound.addEventListener('error', () => this.handleMediaError('sound'));
         }
+        if (this.spasiboSound) {
+            this.spasiboSound.addEventListener('error', () => this.handleMediaError('sound'));
+        }
     }
     
     setupAudio() {
@@ -373,6 +268,10 @@ class Game {
         this.backgroundMusic.volume = GAME_SETTINGS.musicVolume;
         this.goalSound.volume = GAME_SETTINGS.soundEffectsVolume;
         this.applauseSound.volume = GAME_SETTINGS.soundEffectsVolume;
+        if (this.spasiboSound) {
+            this.spasiboSound.volume = GAME_SETTINGS.soundEffectsVolume;
+            this.spasiboSound.src = './assets/audio/spasibo.mp3';
+        }
         
         // Настройка автоматического переключения треков
         if (this.backgroundMusic) {
@@ -445,11 +344,6 @@ class Game {
     }
     
     showScreen(screenId) {
-        // Проверяем ориентацию перед показом любого экрана (только на мобильных)
-        if (this.isMobile && this.checkAndShowOrientationScreen()) {
-            return; // Блокируем показ экрана если портретная ориентация на мобильном
-        }
-        
         // Скрыть все экраны
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
@@ -1094,22 +988,23 @@ class Game {
         const currentPoint = points[this.currentStage - 1] || points[0];
         const startX = currentPoint.x;
         const startY = currentPoint.y;
+        // Используем координаты точки напрямую, как в startBallAnimation
         const endX = targetPoint.x;
         const endY = targetPoint.y;
         
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
         
-        // Вычисляем высоту подбрасывания (зависит от расстояния)
+        // Вычисляем высоту подбрасывания (зависит от расстояния, но не слишком высоко)
         const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-        const maxHeight = Math.min(viewportHeight * 0.25, distance * 0.3); // Максимальная высота подбрасывания
-        const midY = Math.min(startY, endY) - maxHeight; // Высшая точка подбрасывания
+        // Используем такую же логику как в startBallAnimation - фиксированная высота относительно viewport
+        const midY = viewportHeight * 0.2; // Высшая точка подбрасывания (как в startBallAnimation)
         
         // Позиционируем персонажа в начальной точке
         this.positionCharacter(currentPoint);
         this.character.classList.add('running');
         
-        // Устанавливаем начальную позицию мяча (откуда он летит)
+        // Устанавливаем начальную позицию мяча (откуда он летит) - используем центр точки
         ball.style.left = (startX - 17.5) + 'px';
         ball.style.top = (startY - 17.5) + 'px';
         ball.style.transition = 'none';
@@ -1120,23 +1015,23 @@ class Game {
             const isMobile = window.innerWidth <= 768;
             const characterSize = isMobile ? 25 : 30;
             this.character.style.transition = 'left 2.2s cubic-bezier(0.4, 0, 0.2, 1), top 2.2s cubic-bezier(0.4, 0, 0.2, 1)';
+            // Персонаж идет к центру точки
             this.character.style.left = (endX - characterSize / 2) + 'px';
             this.character.style.top = (endY - characterSize / 2) + 'px';
         }, 100);
         
-        // Анимация подбрасывания вверх (первая фаза)
+        // Анимация подбрасывания вверх (первая фаза) - как в startBallAnimation
         setTimeout(() => {
-            // Время подъема зависит от расстояния
-            const riseTime = Math.max(0.8, Math.min(1.5, distance / 300));
-            ball.style.transition = `left ${riseTime}s cubic-bezier(0.4, 0, 0.2, 1), top ${riseTime * 0.6}s cubic-bezier(0.4, 0, 0.2, 1)`;
+            // Используем те же тайминги что и в startBallAnimation
+            ball.style.transition = 'left 1.5s cubic-bezier(0.4, 0, 0.2, 1), top 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
             ball.style.left = (endX - 17.5) + 'px';
             ball.style.top = (midY - 17.5) + 'px';
             
-            // Падение на целевую точку (вторая фаза)
+            // Падение на целевую точку (вторая фаза) - мяч должен попасть точно в центр цифры
             setTimeout(() => {
-                // Время падения
-                const fallTime = Math.max(0.6, Math.min(1.0, distance / 400));
-                ball.style.transition = `left ${fallTime}s cubic-bezier(0.4, 0, 0.2, 1), top ${fallTime}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                // Используем те же тайминги что и в startBallAnimation
+                ball.style.transition = 'left 0.7s cubic-bezier(0.4, 0, 0.2, 1), top 0.7s cubic-bezier(0.4, 0, 0.2, 1)';
+                // Мяч попадает точно в центр точки (endY используется напрямую, как в startBallAnimation)
                 ball.style.left = (endX - 17.5) + 'px';
                 ball.style.top = (endY - 17.5) + 'px';
                 
@@ -1146,8 +1041,8 @@ class Game {
                     if (this.character) {
                         this.character.classList.remove('running');
                     }
-                }, fallTime * 1000);
-            }, riseTime * 1000);
+                }, 700);
+            }, 800);
         }, 50);
     }
     
@@ -1410,11 +1305,24 @@ class Game {
         // Показать обратную связь
         this.taskFeedback.className = `task-feedback ${isCorrect ? 'success' : 'funny'}`;
         this.taskFeedback.textContent = isCorrect ? stage.correctFeedback : stage.wrongFeedback;
-        this.continueBtn.classList.remove('hidden');
         
-        // Воспроизвести звук
-        if (isCorrect) {
+        // Проверяем, это последний вопрос (25-й, индекс 24)?
+        const isLastQuestion = this.currentStage === this.totalStages - 1;
+        
+        if (isLastQuestion) {
+            // Для последнего вопроса - показываем финальный экран сразу после ответа
             this.playSound('goal');
+            this.playSound('applause');
+            setTimeout(() => {
+                this.showFinalScreen();
+            }, 1500); // Небольшая задержка для показа обратной связи
+        } else {
+            // Для остальных вопросов - показываем кнопку "Дальше"
+            this.continueBtn.classList.remove('hidden');
+            // Воспроизвести звук
+            if (isCorrect) {
+                this.playSound('goal');
+            }
         }
     }
     
@@ -1689,15 +1597,31 @@ class Game {
     completeAction(stage) {
         this.taskFeedback.className = `task-feedback ${stage.feedback ? 'success' : 'funny'}`;
         this.taskFeedback.textContent = stage.feedback || 'Отлично! Продолжаем!';
-        this.continueBtn.classList.remove('hidden');
+        
+        // Для button и selectPlace - сразу показываем контент (фотку)
+        if (stage.actionType === 'button' || stage.actionType === 'selectPlace') {
+            // Небольшая задержка для показа feedback
+            setTimeout(() => {
+                this.showContentModal();
+            }, 500);
+        } else {
+            // Для остальных типов действий - показываем кнопку "Дальше"
+            this.continueBtn.classList.remove('hidden');
+        }
     }
     
     showContentModal() {
+        // Проверяем, это последний вопрос? Если да - показываем финальный экран
+        if (this.currentStage === this.totalStages - 1) {
+            this.showFinalScreen();
+            return;
+        }
+        
         // Проверяем, что элементы модального окна существуют
         if (!this.modalTitle || !this.modalBody || !this.modalDescription || !this.contentModal) {
             console.error('Элементы модального окна не найдены');
             // Если модальное окно сломано, просто продолжаем
-            this.nextStage();
+            this.showMapAfterContent();
             return;
         }
         
@@ -2068,15 +1992,28 @@ class Game {
         
         if (this.finalContent) {
             this.finalContent.innerHTML = `
-                <h3 style="font-size: 1.8rem; margin-bottom: 20px; color: var(--primary-red);">${final.title || '🎉 Поздравляем! 🎉'}</h3>
-                <p style="font-size: 1.2rem; line-height: 1.8; margin-bottom: 15px;">${final.text || 'Вы прошли весь квест!'}</p>
-                <p style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 15px;">${final.description || ''}</p>
-                <p style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 15px; font-weight: 700;">${final.message || ''}</p>
-                <p style="font-size: 1.3rem; margin-top: 30px; font-weight: 700; color: var(--primary-red);">${final.ending || 'С любовью! ❤️'}</p>
+                <div style="text-align: center; padding: 20px; max-width: 800px; margin: 0 auto;">
+                    <h2 style="font-size: 2.2rem; margin-bottom: 30px; color: var(--primary-red); text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">${final.title || '🎉 С Днём Рождения! 🎉'}</h2>
+                    <p style="font-size: 1.3rem; line-height: 2; margin-bottom: 20px; color: #333;">${final.text || ''}</p>
+                    <p style="font-size: 1.2rem; line-height: 2; margin-bottom: 20px; color: #444;">${final.description || ''}</p>
+                    <p style="font-size: 1.25rem; line-height: 2; margin-bottom: 25px; color: #222; font-weight: 600;">${final.message || ''}</p>
+                    <p style="font-size: 1.4rem; line-height: 2; margin-top: 40px; margin-bottom: 25px; font-weight: 700; color: var(--primary-red); text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">${final.ending || 'С любовью! ❤️'}</p>
+                    <p style="font-size: 1.1rem; line-height: 2; margin-top: 30px; font-style: italic; color: #666; border-top: 2px solid var(--gold); padding-top: 20px;">${final.signature || 'С любовью и уважением, твои друзья! ❤️'}</p>
+                </div>
             `;
         }
         
-        this.playSound('applause');
+        // Скрываем кнопку "Начать заново" - поздравление нельзя закрыть
+        if (this.restartBtn) {
+            this.restartBtn.style.display = 'none';
+        }
+        
+        // Воспроизводим "спасибо" для финального поздравления
+        this.playSound('spasibo');
+        // Также воспроизводим аплодисменты
+        setTimeout(() => {
+            this.playSound('applause');
+        }, 1000);
     }
     
     createConfetti() {
@@ -2203,6 +2140,9 @@ class Game {
                     break;
                 case 'applause':
                     sound = this.applauseSound;
+                    break;
+                case 'spasibo':
+                    sound = this.spasiboSound;
                     break;
                 default:
                     return;
