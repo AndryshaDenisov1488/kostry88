@@ -7,6 +7,7 @@ class Game {
         this.isMusicPlaying = false;
         this.isMusicEnabled = true; // Музыка включена по умолчанию
         this.progressKey = 'footballQuest30_progress';
+        this.configVersionKey = 'footballQuest30_configVersion';
         
         // Список музыкальных треков для проигрывания по очереди
         this.musicTracks = [
@@ -88,26 +89,30 @@ class Game {
     }
     
     setupResizeHandler() {
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            // Дебаунс для избежания частых пересчётов
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                // Пересчитываем карту только если она активна
-                if (this.mapScreen && this.mapScreen.classList.contains('active')) {
-                    // Сбрасываем трансформацию камеры перед обновлением
-                    const mapContainer = document.querySelector('.map-container');
-                    if (mapContainer) {
-                        mapContainer.style.transform = 'translate(0, 0)';
-                        mapContainer.style.webkitTransform = 'translate(0, 0)';
+        // Отключаем обработчик resize для мобильных устройств, чтобы избежать проблем при повороте экрана
+        // На мобильных устройствах карта работает стабильно без пересчёта при повороте
+        if (window.innerWidth > 768) {
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                // Дебаунс для избежания частых пересчётов
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    // Пересчитываем карту только если она активна (только на десктопе)
+                    if (this.mapScreen && this.mapScreen.classList.contains('active')) {
+                        // Сбрасываем трансформацию камеры перед обновлением
+                        const mapContainer = document.querySelector('.map-container');
+                        if (mapContainer) {
+                            mapContainer.style.transform = 'translate(0, 0)';
+                            mapContainer.style.webkitTransform = 'translate(0, 0)';
+                        }
+                        // Пересчитываем карту с задержкой для стабилизации размеров
+                        setTimeout(() => {
+                            this.updateMap();
+                        }, 200);
                     }
-                    // Пересчитываем карту с задержкой для стабилизации размеров
-                    setTimeout(() => {
-                        this.updateMap();
-                    }, 200);
-                }
-            }, 300);
-        });
+                }, 300);
+            });
+        }
     }
     
     setupElements() {
@@ -2203,6 +2208,21 @@ class Game {
         }
         
         try {
+            // Проверяем версию конфига - если изменилась, очищаем старый прогресс
+            const savedVersion = localStorage.getItem(this.configVersionKey);
+            const currentVersion = typeof CONFIG_VERSION !== 'undefined' ? CONFIG_VERSION : 1;
+            
+            if (savedVersion && savedVersion !== String(currentVersion)) {
+                console.log('Версия конфига изменилась, очищаем старый прогресс');
+                localStorage.removeItem(this.progressKey);
+                localStorage.setItem(this.configVersionKey, String(currentVersion));
+                this.currentStage = 0;
+                return;
+            }
+            
+            // Сохраняем текущую версию конфига
+            localStorage.setItem(this.configVersionKey, String(currentVersion));
+            
             const saved = localStorage.getItem(this.progressKey);
             if (saved) {
                 const progress = JSON.parse(saved);
