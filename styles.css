@@ -45,7 +45,8 @@ body {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-style: normal; /* Убираем курсив по умолчанию */
+    font-style: normal !important; /* Убираем курсив по умолчанию - принудительно */
+    font-variant: normal !important;
 }
 
 /* Экран-заглушка для портретной ориентации */
@@ -1773,10 +1774,22 @@ body {
 
 /* Адаптивность для мобильных */
 @media (max-width: 768px) {
-    /* Убираем курсив на мобильных, делаем шрифт как на компьютере */
-    body, * {
+    /* Убираем курсив на мобильных, делаем шрифт как на компьютере - принудительно для всех элементов */
+    html, body, *, *::before, *::after,
+    p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, label, a,
+    .title, .subtitle, .tagline, .task-title, .task-body, .option-btn,
+    .hint-content, .warning-hint-content, .start-hint {
         font-style: normal !important;
-        font-family: 'Comic Neue', cursive, sans-serif;
+        font-variant: normal !important;
+        font-weight: normal;
+        font-family: 'Comic Neue', cursive, sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* Принудительно убираем курсив у всех текстовых элементов */
+    button, input, textarea, select, label {
+        font-style: normal !important;
     }
     
     /* Упрощенные стили для мобильных */
@@ -1875,18 +1888,24 @@ body {
 }
 
 @media (max-width: 480px) {
-    body, * {
+    /* Принудительно убираем курсив на маленьких экранах */
+    html, body, *, *::before, *::after,
+    p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, label, a,
+    .title, .subtitle, .tagline, .task-title, .task-body, .option-btn,
+    .hint-content, .warning-hint-content, .start-hint {
         font-style: normal !important;
+        font-variant: normal !important;
+        font-family: 'Comic Neue', cursive, sans-serif !important;
     }
     
     .title {
         font-size: 2.5rem;
-        font-style: normal;
+        font-style: normal !important;
     }
     
     .subtitle {
         font-size: 1.5rem;
-        font-style: normal;
+        font-style: normal !important;
     }
     
     .task-container {
@@ -2011,4 +2030,28 @@ button:focus {
     .orientation-screen {
         display: none !important;
     }
+}
+
+/* Финальное правило: убираем курсив везде - самое строгое правило в конце */
+html, html *, body, body * {
+    font-style: normal !important;
+    font-variant: normal !important;
+}
+
+html *, body *, *::before, *::after,
+p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, label, a, 
+strong, em, b, i, u, small, sub, sup, select, option {
+    font-style: normal !important;
+    font-variant: normal !important;
+}
+
+/* Убираем курсив у всех интерактивных элементов */
+button, input, textarea, select, label, a {
+    font-style: normal !important;
+    font-variant: normal !important;
+}
+
+/* Убираем курсив даже у элементов с классом italic */
+.italic, [style*="italic"], [style*="font-style:italic"], i, em {
+    font-style: normal !important;
 }

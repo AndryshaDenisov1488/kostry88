@@ -70,20 +70,52 @@ class Game {
     }
     
     setupOrientationHandler() {
+        let resizeTimeout;
+        
         // Проверяем ориентацию при изменении размера окна
         window.addEventListener('resize', () => {
-            this.isPortraitOrientation = this.checkOrientation();
-            this.isMobile = this.checkIfMobile();
-            this.checkAndShowOrientationScreen();
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.isPortraitOrientation = this.checkOrientation();
+                this.isMobile = this.checkIfMobile();
+                
+                // Если не портретная ориентация и карта активна - обновляем её
+                if (!this.isPortraitOrientation && this.mapScreen && this.mapScreen.classList.contains('active')) {
+                    this.updateMap();
+                }
+                
+                this.checkAndShowOrientationScreen();
+            }, 300);
         });
         
         // Также проверяем при изменении ориентации (для мобильных устройств)
         window.addEventListener('orientationchange', () => {
+            // Увеличиваем задержку для корректной обработки поворота
             setTimeout(() => {
+                // Принудительно обновляем размеры viewport
+                window.dispatchEvent(new Event('resize'));
+                
                 this.isPortraitOrientation = this.checkOrientation();
                 this.isMobile = this.checkIfMobile();
+                
+                // Если перевернули в альбомную ориентацию и карта была видна - обновляем
+                if (!this.isPortraitOrientation) {
+                    if (this.mapScreen && this.mapScreen.classList.contains('active')) {
+                        // Небольшая задержка для стабилизации размеров
+                        setTimeout(() => {
+                            this.updateMap();
+                        }, 500);
+                    }
+                    // Если был показан splash или стартовый экран - перезагружаем их
+                    if (this.startScreen && this.startScreen.classList.contains('active')) {
+                        // Перезагружаем страницу для корректной работы
+                        // Но лучше просто обновить отображение
+                        this.showScreen('startScreen');
+                    }
+                }
+                
                 this.checkAndShowOrientationScreen();
-            }, 100);
+            }, 300);
         });
     }
     
@@ -590,8 +622,8 @@ class Game {
                 return;
             }
             
-            // Создать игроков на поле (12 штук - по 6 с каждой стороны)
-            this.createFieldPlayers();
+            // Декоративные игроки убраны - они мешали и не имели номеров
+            // this.createFieldPlayers();
             
             // Создать мяч
             this.createFootballBall();
@@ -1816,12 +1848,14 @@ class Game {
         const isMobile = viewportWidth <= 768;
         
         // Адаптивное позиционирование с учетом границ экрана
-        let offsetX = isMobile ? 50 : 60; // Смещение справа от точки
-        let offsetY = isMobile ? -40 : -30; // Смещение вверх от точки
+        // Увеличиваем смещение, чтобы подсказка не перекрывала цифру на точке
+        // Размер точки примерно 40x50px, поэтому смещаем минимум на 60-80px
+        let offsetX = isMobile ? 80 : 100; // Смещение справа от точки (увеличено, чтобы не перекрывать)
+        let offsetY = isMobile ? -60 : -50; // Смещение вверх от точки (увеличено)
         
         // Если точка справа, подсказка слева
         if (nextPoint.x > viewportWidth / 2) {
-            offsetX = isMobile ? -180 : -220; // Смещение слева
+            offsetX = isMobile ? -220 : -280; // Смещение слева (увеличено, чтобы не перекрывать)
             // Меняем стрелку на другую сторону
             hintElement.innerHTML = `
                 <div class="hint-content">
@@ -1833,9 +1867,9 @@ class Game {
         
         // Проверяем границы по вертикали
         if (nextPoint.y < 100) {
-            offsetY = 50; // Если точка сверху, подсказка снизу
+            offsetY = 70; // Если точка сверху, подсказка снизу (увеличено, чтобы не перекрывать)
         } else if (nextPoint.y > viewportHeight - 100) {
-            offsetY = -80; // Если точка снизу, подсказка сверху
+            offsetY = -100; // Если точка снизу, подсказка сверху (увеличено, чтобы не перекрывать)
         }
         
         hintElement.style.left = (nextPoint.x + offsetX) + 'px';
@@ -1853,7 +1887,7 @@ class Game {
             hintElement.classList.add('visible');
         }, 50);
         
-        // Через 10 секунд увеличиваем цифру и показываем дополнительную подсказку
+        // Через 10 секунд увеличиваем цифру (без дополнительной подсказки)
         setTimeout(() => {
             if (!nextPointElement || !nextPointElement.parentNode) return;
             
@@ -1869,42 +1903,14 @@ class Game {
             nextPointElement.style.zIndex = '200';
             nextPointElement.style.transition = 'all 0.5s ease';
             nextPointElement.style.textShadow = '0 0 15px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.6)';
-            
-            // Создаём всплывающую подсказку
-            const warningHint = document.createElement('div');
-            warningHint.className = 'warning-hint-popup';
-            warningHint.id = 'warningHintPopup';
-            warningHint.innerHTML = `
-                <div class="warning-hint-content">
-                    <p>Если ты не выучишь порядок, я расскажу что общего между тобой и кухонной утварью</p>
-                </div>
-            `;
-            
-            // Позиционируем подсказку рядом с цифрой (адаптивно)
-            const warningOffsetX = isMobile ? offsetX + 30 : offsetX + 80;
-            const warningOffsetY = isMobile ? offsetY - 60 : offsetY - 90;
-            
-            warningHint.style.left = (nextPoint.x + warningOffsetX) + 'px';
-            warningHint.style.top = (nextPoint.y + warningOffsetY) + 'px';
-            
-            this.map.appendChild(warningHint);
-            
-            // Анимация появления
-            setTimeout(() => {
-                warningHint.classList.add('visible');
-            }, 50);
-            
-            // Сохраняем ссылку для удаления
-            this.warningHint = warningHint;
-            
         }, 10000); // 10 секунд
         
-        // Автоматически скрываем подсказку через 25 секунд (15 секунд после предупреждения)
+        // Автоматически скрываем подсказку через 15 секунд
         setTimeout(() => {
             if (hintElement && hintElement.parentNode) {
                 this.hideHint();
             }
-        }, 25000);
+        }, 15000);
     }
     
     hideHint() {
@@ -1913,15 +1919,6 @@ class Game {
             hintElement.classList.remove('visible');
             setTimeout(() => {
                 hintElement.remove();
-            }, 300);
-        }
-        
-        // Убираем предупреждающую подсказку
-        const warningHint = document.getElementById('warningHintPopup');
-        if (warningHint) {
-            warningHint.classList.remove('visible');
-            setTimeout(() => {
-                warningHint.remove();
             }, 300);
         }
         
