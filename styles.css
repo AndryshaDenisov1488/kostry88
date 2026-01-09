@@ -36,7 +36,7 @@ html {
 }
 
 body {
-    font-family: 'Comic Neue', cursive, sans-serif;
+    font-family: 'Comic Neue', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     min-height: -webkit-fill-available; /* Для мобильных браузеров */
@@ -1077,7 +1077,7 @@ body {
     font-size: 1.1rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: 'Comic Neue', cursive;
+    font-family: 'Comic Neue', sans-serif;
     text-align: left;
     /* Улучшения для мобильных */
     -webkit-tap-highlight-color: transparent;
@@ -1118,7 +1118,7 @@ body {
     border: none;
     border-radius: 15px;
     cursor: pointer;
-    font-family: 'Comic Neue', cursive;
+    font-family: 'Comic Neue', sans-serif;
     font-weight: 700;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px var(--shadow);
@@ -1418,7 +1418,7 @@ body {
 .btn {
     padding: 15px 30px;
     font-size: 1.2rem;
-    font-family: 'Comic Neue', cursive;
+    font-family: 'Comic Neue', sans-serif;
     font-weight: 700;
     border: none;
     border-radius: 30px;
@@ -1720,7 +1720,7 @@ body {
         font-style: normal !important;
         font-variant: normal !important;
         font-weight: normal;
-        font-family: 'Comic Neue', cursive, sans-serif !important;
+        font-family: 'Comic Neue', sans-serif !important;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
@@ -1833,7 +1833,7 @@ body {
     .hint-content, .warning-hint-content, .start-hint {
         font-style: normal !important;
         font-variant: normal !important;
-        font-family: 'Comic Neue', cursive, sans-serif !important;
+        font-family: 'Comic Neue', sans-serif !important;
     }
     
     .title {

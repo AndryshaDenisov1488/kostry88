@@ -2,7 +2,7 @@
 // Легко редактируется и расширяется
 
 // ВЕРСИЯ КОНФИГА - при изменении вопросов увеличивай это число
-const CONFIG_VERSION = 2;
+const CONFIG_VERSION = 4;
 
 const GAME_CONFIG = {
     totalStages: 25,
@@ -48,7 +48,7 @@ const GAME_CONFIG = {
             options: [
                 'Когда тренируется',
                 'Когда играет честно',
-                'Когда Дрон выбирает 10 раз, а он один',
+                'Когда Дрон выигрывает 10 раз, а он один',
                 'Когда играет один'
             ],
             correctAnswer: 2,
@@ -80,7 +80,7 @@ const GAME_CONFIG = {
         {
             type: 'question',
             question: 'Что Артём любит делать в магазинах, даже когда деньги есть?',
-            options: ['Покупать по списку', 'Искать скидки', 'Пиздить еду', 'Поддерживать экономику'],
+            options: ['Покупать по списку', 'Искать скидки', 'Пиздить творог и еду', 'Поддерживать экономику'],
             correctAnswer: 2,
             correctFeedback: 'Классика. Адреналин важнее 🧀😄',
             wrongFeedback: 'Не по-артёмовски 🐷'
@@ -274,175 +274,175 @@ const GAME_CONFIG = {
             title: 'Этап 1',
             type: 'image',
             imagePath: './assets/images/01.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
-            title: 'Этап 2',
+            title: 'Красно-белые навсегда 🔴⚪',
             type: 'image',
             imagePath: './assets/images/02.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 3',
             type: 'image',
             imagePath: './assets/images/03.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 4',
             type: 'image',
             imagePath: './assets/images/04.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 5',
             type: 'image',
             imagePath: './assets/images/05.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 6',
             type: 'image',
             imagePath: './assets/images/06.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 7',
             type: 'image',
             imagePath: './assets/images/07.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 8',
             type: 'image',
             imagePath: './assets/images/08.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 9',
             type: 'image',
             imagePath: './assets/images/09.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 10',
             type: 'image',
             imagePath: './assets/images/10.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 11',
             type: 'image',
             imagePath: './assets/images/11.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 12',
             type: 'image',
             imagePath: './assets/images/12.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 13',
             type: 'image',
             imagePath: './assets/images/13.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 14',
             type: 'image',
             imagePath: './assets/images/14.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 15',
             type: 'image',
             imagePath: './assets/images/15.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 16',
             type: 'image',
             imagePath: './assets/images/16.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 17',
             type: 'image',
             imagePath: './assets/images/17.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 18',
             type: 'image',
             imagePath: './assets/images/18.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 19',
             type: 'image',
             imagePath: './assets/images/19.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 20',
             type: 'image',
             imagePath: './assets/images/20.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 21',
             type: 'image',
             imagePath: './assets/images/21.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 22',
             type: 'image',
             imagePath: './assets/images/22.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 23',
             type: 'image',
             imagePath: './assets/images/23.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 24',
             type: 'image',
             imagePath: './assets/images/24.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         },
         {
             title: 'Этап 25',
             type: 'image',
             imagePath: './assets/images/25.jpg',
-            content: 'Памятный момент',
+            content: '',
             description: ''
         }
     ],
