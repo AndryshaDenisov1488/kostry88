@@ -12,7 +12,8 @@ class Game {
         this.musicTracks = [
             './assets/audio/holigan.mp3',
             './assets/audio/medlyak.mp3',
-            './assets/audio/maksim.mp3'
+            './assets/audio/maksim.mp3',
+            './assets/audio/spasibo.mp3'
         ];
         this.currentTrackIndex = 0;
         
