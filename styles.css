@@ -1480,14 +1480,23 @@ body {
     background: linear-gradient(135deg, var(--primary-red) 0%, #FFD700 50%, var(--field-green) 100%);
     color: var(--primary-white);
     text-align: center;
-    overflow-y: auto;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    -webkit-overflow-scrolling: touch; /* Плавная прокрутка на iOS */
 }
 
 .final-content {
     max-width: 800px;
+    width: 100%;
     padding: 40px 20px;
+    padding-top: 20px;
+    margin: 0 auto;
     position: relative;
     z-index: 10;
+    min-height: 100%;
+    box-sizing: border-box;
 }
 
 .confetti-container {
@@ -1786,6 +1795,27 @@ body {
 
     .final-title {
         font-size: 2.5rem;
+    }
+    
+    /* Финальный экран на мобильных - прокрутка сверху */
+    #finalScreen {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .final-content {
+        padding-top: 20px;
+        padding-bottom: 40px;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .final-body {
+        padding: 20px;
+        margin: 0 10px;
     }
 
     .restore-buttons {
