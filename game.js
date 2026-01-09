@@ -1057,34 +1057,58 @@ class Game {
         const endX = targetPoint.x;
         const endY = targetPoint.y;
         
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        
+        // Вычисляем высоту подбрасывания (зависит от расстояния)
+        const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+        const maxHeight = Math.min(viewportHeight * 0.25, distance * 0.3); // Максимальная высота подбрасывания
+        const midY = Math.min(startY, endY) - maxHeight; // Высшая точка подбрасывания
+        
         // Позиционируем персонажа в начальной точке
         this.positionCharacter(currentPoint);
         this.character.classList.add('running');
         
-        // Добавляем класс для анимации подпрыгивания мяча
+        // Устанавливаем начальную позицию мяча (откуда он летит)
+        ball.style.left = (startX - 17.5) + 'px';
+        ball.style.top = (startY - 17.5) + 'px';
+        ball.style.transition = 'none';
         ball.classList.add('moving');
-        
-        // Анимируем движение мяча к игроку
-        ball.style.transition = 'left 1.2s cubic-bezier(0.4, 0, 0.2, 1), top 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
-        ball.style.left = (endX - 17.5) + 'px';
-        ball.style.top = (endY - 17.5) + 'px';
         
         // Персонаж бежит за мячом (с небольшой задержкой)
         setTimeout(() => {
             const isMobile = window.innerWidth <= 768;
             const characterSize = isMobile ? 25 : 30;
-            this.character.style.transition = 'left 1.2s cubic-bezier(0.4, 0, 0.2, 1), top 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+            this.character.style.transition = 'left 2.2s cubic-bezier(0.4, 0, 0.2, 1), top 2.2s cubic-bezier(0.4, 0, 0.2, 1)';
             this.character.style.left = (endX - characterSize / 2) + 'px';
             this.character.style.top = (endY - characterSize / 2) + 'px';
         }, 100);
         
-        // Убираем класс анимации после завершения
+        // Анимация подбрасывания вверх (первая фаза)
         setTimeout(() => {
-            ball.classList.remove('moving');
-            if (this.character) {
-                this.character.classList.remove('running');
-            }
-        }, 1200);
+            // Время подъема зависит от расстояния
+            const riseTime = Math.max(0.8, Math.min(1.5, distance / 300));
+            ball.style.transition = `left ${riseTime}s cubic-bezier(0.4, 0, 0.2, 1), top ${riseTime * 0.6}s cubic-bezier(0.4, 0, 0.2, 1)`;
+            ball.style.left = (endX - 17.5) + 'px';
+            ball.style.top = (midY - 17.5) + 'px';
+            
+            // Падение на целевую точку (вторая фаза)
+            setTimeout(() => {
+                // Время падения
+                const fallTime = Math.max(0.6, Math.min(1.0, distance / 400));
+                ball.style.transition = `left ${fallTime}s cubic-bezier(0.4, 0, 0.2, 1), top ${fallTime}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                ball.style.left = (endX - 17.5) + 'px';
+                ball.style.top = (endY - 17.5) + 'px';
+                
+                // Убираем класс анимации после завершения падения
+                setTimeout(() => {
+                    ball.classList.remove('moving');
+                    if (this.character) {
+                        this.character.classList.remove('running');
+                    }
+                }, fallTime * 1000);
+            }, riseTime * 1000);
+        }, 50);
     }
     
     createMapPoint(point, index) {
@@ -1829,12 +1853,58 @@ class Game {
             hintElement.classList.add('visible');
         }, 50);
         
-        // Автоматически скрываем подсказку через 15 секунд
+        // Через 10 секунд увеличиваем цифру и показываем дополнительную подсказку
+        setTimeout(() => {
+            if (!nextPointElement || !nextPointElement.parentNode) return;
+            
+            // Увеличиваем размер цифры на точке (адаптивно)
+            const isMobile = window.innerWidth <= 768;
+            const fontSize = isMobile ? '20px' : '28px';
+            const scale = isMobile ? 1.8 : 2.2;
+            
+            nextPointElement.style.fontSize = fontSize;
+            nextPointElement.style.fontWeight = '900';
+            nextPointElement.style.transform = `translateZ(70px) scale(${scale})`;
+            nextPointElement.style.webkitTransform = `translateZ(70px) scale(${scale})`;
+            nextPointElement.style.zIndex = '200';
+            nextPointElement.style.transition = 'all 0.5s ease';
+            nextPointElement.style.textShadow = '0 0 15px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.6)';
+            
+            // Создаём всплывающую подсказку
+            const warningHint = document.createElement('div');
+            warningHint.className = 'warning-hint-popup';
+            warningHint.id = 'warningHintPopup';
+            warningHint.innerHTML = `
+                <div class="warning-hint-content">
+                    <p>Если ты не выучишь порядок, я расскажу что общего между тобой и кухонной утварью</p>
+                </div>
+            `;
+            
+            // Позиционируем подсказку рядом с цифрой (адаптивно)
+            const warningOffsetX = isMobile ? offsetX + 30 : offsetX + 80;
+            const warningOffsetY = isMobile ? offsetY - 60 : offsetY - 90;
+            
+            warningHint.style.left = (nextPoint.x + warningOffsetX) + 'px';
+            warningHint.style.top = (nextPoint.y + warningOffsetY) + 'px';
+            
+            this.map.appendChild(warningHint);
+            
+            // Анимация появления
+            setTimeout(() => {
+                warningHint.classList.add('visible');
+            }, 50);
+            
+            // Сохраняем ссылку для удаления
+            this.warningHint = warningHint;
+            
+        }, 10000); // 10 секунд
+        
+        // Автоматически скрываем подсказку через 25 секунд (15 секунд после предупреждения)
         setTimeout(() => {
             if (hintElement && hintElement.parentNode) {
                 this.hideHint();
             }
-        }, 15000);
+        }, 25000);
     }
     
     hideHint() {
@@ -1846,23 +1916,42 @@ class Game {
             }, 300);
         }
         
-        // Убираем подсветку с точек
+        // Убираем предупреждающую подсказку
+        const warningHint = document.getElementById('warningHintPopup');
+        if (warningHint) {
+            warningHint.classList.remove('visible');
+            setTimeout(() => {
+                warningHint.remove();
+            }, 300);
+        }
+        
+        // Убираем подсветку и возвращаем нормальный размер точек
         const highlighted = this.map.querySelectorAll('.map-point.hint-highlight');
         highlighted.forEach(point => {
             point.classList.remove('hint-highlight');
+            // Возвращаем нормальный размер
+            point.style.fontSize = '';
+            point.style.fontWeight = '';
+            point.style.transform = '';
+            point.style.webkitTransform = '';
+            point.style.zIndex = '';
+            point.style.transition = '';
         });
     }
     
     // Саркастические сообщения при попытке кликнуть не на ту точку
     showSarcasticMessage(pointNumber) {
+        // Правильный следующий этап - это currentStage + 1 (потому что currentStage это индекс, а этапы с 1)
+        const nextStage = this.currentStage + 1;
+        
         const messages = [
-            `Деревенский, ты считать разучился? Сначала ${this.currentStage + 1}, потом ${pointNumber}!`,
-            `Эй, счетовод! Нужно пройти ${this.currentStage + 1}, а не ${pointNumber}!`,
-            `Считать не умеешь? Следующий этап - ${this.currentStage + 1}, а не ${pointNumber}!`,
-            `Деревенский, порядок нарушил! Сначала ${this.currentStage + 1}!`,
-            `Куда лезешь? Этап ${this.currentStage + 1} еще не прошел, а ты на ${pointNumber}!`,
-            `Последовательность, братан! Сначала ${this.currentStage + 1}, потом ${pointNumber}!`,
-            `Ты что, считать не умеешь? Нужен этап ${this.currentStage + 1}, а не ${pointNumber}!`
+            `Деревенский, ты считать разучился? Сейчас ${nextStage} этап, а не ${pointNumber}!`,
+            `Эй, счетовод! Нужно пройти ${nextStage} этап, а не ${pointNumber}!`,
+            `Считать не умеешь? Следующий этап - ${nextStage}, а не ${pointNumber}!`,
+            `Деревенский, порядок нарушил! Сейчас ${nextStage} этап!`,
+            `Куда лезешь? Сейчас ${nextStage} этап, а ты на ${pointNumber}!`,
+            `Последовательность, братан! Сейчас ${nextStage} этап, потом ${pointNumber}!`,
+            `Ты что, считать не умеешь? Нужен этап ${nextStage}, а не ${pointNumber}!`
         ];
         
         const message = messages[Math.floor(Math.random() * messages.length)];
